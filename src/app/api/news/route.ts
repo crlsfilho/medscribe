@@ -51,29 +51,71 @@ async function fetchRSS(url: string, sourceName: string): Promise<Article[]> {
     }
 }
 
-export async function GET() {
-    // 1. Ministério da Saúde RSS (Direct via Google News to ensure stability)
-    // 2. Google News: Cardiology (Scientific/Official sources) - Last 30 days
-    const cardiologiaFeed = "https://news.google.com/rss/search?q=cardiologia+site:sbc.org.br+OR+site:scielo.br+OR+site:arquivosonline.com.br+when:30d&hl=pt-BR&gl=BR&ceid=BR:pt-419";
+const NCBI_BASE_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils";
 
-    // 3. Google News: Ministry of Health (Official) - Last 14 days
+async function fetchPubmed(query: string): Promise<Article[]> {
+    try {
+        // 1. Search for recent free full text articles
+        const esearchUrl = `${NCBI_BASE_URL}/esearch.fcgi?db=pubmed&term=${encodeURIComponent(
+            query + " AND free full text[sb]"
+        )}&retmode=json&retmax=3&sort=date`; // Sort by date for new articles
+
+        const searchRes = await fetch(esearchUrl, { next: { revalidate: 3600 } });
+        const searchData = await searchRes.json();
+        const ids = searchData.esearchresult?.idlist || [];
+
+        if (ids.length === 0) return [];
+
+        // 2. Get details
+        const esummaryUrl = `${NCBI_BASE_URL}/esummary.fcgi?db=pubmed&id=${ids.join(",")}&retmode=json`;
+        const summaryRes = await fetch(esummaryUrl, { next: { revalidate: 3600 } });
+        const summaryData = await summaryRes.json();
+        const result = summaryData.result || {};
+
+        return ids.map((id: string) => {
+            const doc = result[id];
+            if (!doc) return null;
+
+            return {
+                title: doc.title,
+                description: doc.source || "PubMed Article",
+                url: `https://pubmed.ncbi.nlm.nih.gov/${id}/`,
+                source: { name: "PubMed/Cardio" },
+                publishedAt: doc.sortpubdate || doc.pubdate
+            };
+        }).filter(Boolean) as Article[];
+
+    } catch (error) {
+        console.error("Error fetching PubMed:", error);
+        return [];
+    }
+}
+
+export async function GET() {
+    // 1. Ministério da Saúde RSS
     const minSaudeFeed = "https://news.google.com/rss/search?q=site:gov.br/saude+when:14d&hl=pt-BR&gl=BR&ceid=BR:pt-419";
 
-    const [cardioNews, govNews] = await Promise.all([
-        fetchRSS(cardiologiaFeed, "Cardiologia/SBC"),
-        fetchRSS(minSaudeFeed, "Min. Saúde")
+    // 2. Google News: Cardiology (Scientific/Official sources)
+    const cardiologiaFeed = "https://news.google.com/rss/search?q=cardiologia+site:sbc.org.br+OR+site:scielo.br+OR+site:arquivosonline.com.br+when:30d&hl=pt-BR&gl=BR&ceid=BR:pt-419";
+
+    const [cardioNews, govNews, pubmedNews] = await Promise.all([
+        fetchRSS(cardiologiaFeed, "SBC/Cardio"),
+        fetchRSS(minSaudeFeed, "Min. Saúde"),
+        fetchPubmed("cardiology") // New source
     ]);
 
     // Interleave news for variety
     const articles = [];
-    const maxLength = Math.max(cardioNews.length, govNews.length);
+    const maxLength = Math.max(cardioNews.length, govNews.length, pubmedNews.length);
+
     for (let i = 0; i < maxLength; i++) {
+        if (pubmedNews[i]) articles.push(pubmedNews[i]); // Priority to new source
         if (govNews[i]) articles.push(govNews[i]);
         if (cardioNews[i]) articles.push(cardioNews[i]);
     }
 
     return NextResponse.json({
-        articles: articles.slice(0, 5),
-        source: "rss_custom"
+        articles: articles.slice(0, 7), // Increased limit slightly
+        source: "rss_custom_mixed"
     });
 }

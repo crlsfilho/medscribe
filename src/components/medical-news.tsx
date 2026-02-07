@@ -50,7 +50,7 @@ export function MedicalNews() {
     const currentArticle = articles[currentIndex];
 
     return (
-        <div className="flex items-center gap-3 bg-muted/30 border border-border/40 rounded-full px-4 py-1.5 max-w-2xl w-fit">
+        <div className="flex items-center gap-3 bg-muted/30 border border-border/40 rounded-full px-4 py-1.5 w-full max-w-full md:w-fit md:max-w-2xl overflow-hidden">
             {/* Live Indicator */}
             <div className="relative flex items-center justify-center w-2.5 h-2.5 shrink-0">
                 <span className={cn("absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-ping", fade && "animate-none")} />

@@ -18,12 +18,14 @@ export async function POST(request: NextRequest) {
     const contentType = request.headers.get("content-type") || "";
     let visitId = "";
     let audioPath = "";
+    let saveToDb = true;
 
     if (contentType.includes("multipart/form-data")) {
       // Handle File Upload + Transcription (Production/Vercel Mode)
       const formData = await request.formData();
       const file = formData.get("audio") as File;
       visitId = formData.get("visitId") as string;
+      saveToDb = formData.get("saveToDb") !== "false";
 
       if (!file || !visitId) {
         return NextResponse.json(
@@ -85,10 +87,6 @@ export async function POST(request: NextRequest) {
     });
 
     const formattedText = transcription;
-
-    // Only update DB if requested (default to true to keep backward compatibility)
-    // When chunking, we send saveToDb=false
-    const saveToDb = formData.get("saveToDb") !== "false";
 
     if (saveToDb) {
       // Update Visit
