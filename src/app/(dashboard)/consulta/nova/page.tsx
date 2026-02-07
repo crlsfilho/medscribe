@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, Suspense, useRef } from "react";
+import { useState, useCallback, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,11 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SegmentedAudioRecorder } from "@/components/segmented-recorder";
-import {
-  ProcessingScreen,
-  ProcessingStep,
-} from "@/components/processing-screen";
+import { AudioRecorder } from "@/components/audio-recorder";
+import { ProcessingScreen, ProcessingStep } from "@/components/processing-screen";
 import { ConsentDialog } from "@/components/consent-dialog";
 
 function NovaConsultaContent() {
@@ -37,7 +34,7 @@ function NovaConsultaContent() {
   // Appointment reference (if starting from scheduled appointment)
   const [appointmentId, setAppointmentId] = useState<string | null>(null);
 
-  // Initialize from URL params (when starting from appointment or patient profile)
+  // Initialize from URL params
   useEffect(() => {
     const patientId = searchParams.get("patientId");
     const name = searchParams.get("name");
@@ -52,16 +49,13 @@ function NovaConsultaContent() {
     if (aptId) setAppointmentId(aptId);
   }, [searchParams]);
 
-  // Audio data
+  // Audio and Visit data
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-
-  // Visit data
   const [visitId, setVisitId] = useState<string | null>(null);
 
   // Processing state
-  const [processingStep, setProcessingStep] = useState<ProcessingStep | null>(
-    null
-  );
+  const [processingStep, setProcessingStep] = useState<ProcessingStep | null>(null);
+  const [processingError, setProcessingError] = useState<string>("");
 
   // Consent dialog state
   const [showConsentDialog, setShowConsentDialog] = useState(false);
@@ -99,9 +93,7 @@ function NovaConsultaContent() {
       const visitResponse = await fetch("/api/visits", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          patientId: patientIdToUse,
-        }),
+        body: JSON.stringify({ patientId: patientIdToUse }),
       });
 
       if (!visitResponse.ok) {
@@ -118,118 +110,18 @@ function NovaConsultaContent() {
           await fetch(`/api/appointments/${appointmentId}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              status: "completed",
-              visitId: visit.id,
-            }),
+            body: JSON.stringify({ status: "completed", visitId: visit.id }),
           });
         } catch {
-          // Non-critical error, continue with the flow
           console.error("Erro ao atualizar agendamento");
         }
       }
 
       setShowConsentDialog(true);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Erro ao iniciar atendimento"
-      );
+      setError(err instanceof Error ? err.message : "Erro ao iniciar atendimento");
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Transcript Accumulation
-  const [accumulatedTranscript, setAccumulatedTranscript] = useState("");
-  const [pendingUploads, setPendingUploads] = useState(0);
-
-  const handleAudioSegment = useCallback(async (blob: Blob, index: number) => {
-    if (!visitId) return;
-
-    setPendingUploads(prev => prev + 1);
-    try {
-      console.log(`Uploading segment ${index}, size: ${blob.size}`);
-
-      const formData = new FormData();
-      formData.append("audio", blob, `segment-${index}.webm`);
-      formData.append("visitId", visitId);
-      formData.append("saveToDb", "false"); // We accumulate locally first
-
-      const response = await fetch("/api/transcribe", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        console.error("Segment upload failed");
-        // Fail silently on UI to not interrupt recording, but maybe notify?
-        // In a robust app, queue for retry.
-        // For now, we accept potential loss of a segment rather than crash.
-        return;
-      }
-
-      const data = await response.json();
-      if (data.text) {
-        setAccumulatedTranscript(prev => (prev ? prev + " " : "") + data.text);
-      }
-
-    } catch (e) {
-      console.error("Error processing segment", e);
-    } finally {
-      setPendingUploads(prev => prev - 1);
-    }
-  }, [visitId]);
-
-  const handleRecordingComplete = async () => {
-    if (!visitId) return;
-
-    setLoading(true);
-    setProcessingStep("transcribing"); // Show saving/finalizing
-
-    // Wait for pending uploads? 
-    // In a real optimized system we would wait.
-    // Here we can assume if user stopped, they dealt with the delay or we give a small buffer.
-
-    // Quick delay to allow last segment to potentially finish if it was quick
-    // Ideally we track the promise.
-    await new Promise(r => setTimeout(r, 2000));
-
-    // Save Full Transcript
-    try {
-      // Note: accumulatedTranscript might be stale in this closure if not careful?
-      // functional state update is safer but here we read state.
-      // However, we can also fetch the current visit text from DB if we were appending there.
-      // Since we appended locally, let's use the local state (referenced via a Ref if needed for closure freshness).
-
-      // Actually, saving state directly here might be stale due to closure.
-      // Let's use a state-setter pattern or Ref for the text to ensure freshness on completion.
-    } catch (e) { }
-
-    // NOTE: To fix the closure staleness of `accumulatedTranscript`, 
-    // we should use a Ref to track it for the final save.
-  };
-
-  // Ref for fresh transcript access in event handlers
-  const transcriptRef = useRef("");
-  useEffect(() => {
-    transcriptRef.current = accumulatedTranscript;
-  }, [accumulatedTranscript]);
-
-  const finalizeVisit = async () => {
-    if (!visitId) return;
-    try {
-      await fetch(`/api/visits/${visitId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ transcriptText: transcriptRef.current })
-      });
-
-      setProcessingStep("complete");
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      router.push(`/consulta/${visitId}`);
-
-    } catch (e) {
-      setError("Erro ao salvar transcrição final.");
     }
   };
 
@@ -241,6 +133,87 @@ function NovaConsultaContent() {
   const handleConsentCancel = () => {
     setShowConsentDialog(false);
   };
+
+  const handleAudioReady = useCallback((blob: Blob) => {
+    setAudioBlob(blob);
+  }, []);
+
+  const handleProcessAudio = async () => {
+    if (!audioBlob || !visitId) return;
+
+    setProcessingStep("uploading");
+    setProcessingError("");
+
+    try {
+      // Step 1: Upload and Transcribe
+      const formData = new FormData();
+      formData.append("audio", audioBlob, "recording.webm");
+      formData.append("visitId", visitId);
+
+      setProcessingStep("transcribing");
+
+      const transcribeResponse = await fetch("/api/transcribe", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!transcribeResponse.ok) {
+        const data = await transcribeResponse.json();
+        throw new Error(data.error || "Erro na transcricao");
+      }
+
+      // Step 2: Generate SOAP
+      setProcessingStep("generating");
+
+      const soapResponse = await fetch("/api/generate-soap", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ visitId }),
+      });
+
+      if (!soapResponse.ok) {
+        const data = await soapResponse.json();
+        throw new Error(data.error || "Erro ao gerar SOAP");
+      }
+
+      // Step 3: Complete
+      setProcessingStep("complete");
+
+      // Wait a moment to show success, then redirect
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      router.push(`/consulta/${visitId}`);
+
+    } catch (err) {
+      console.error("Processing error:", err);
+      setProcessingError(err instanceof Error ? err.message : "Erro no processamento");
+      setProcessingStep("error");
+    }
+  };
+
+  const handleRetry = () => {
+    setProcessingStep(null);
+    setProcessingError("");
+  };
+
+  const handleCancel = () => {
+    setProcessingStep(null);
+    setProcessingError("");
+    setAudioBlob(null);
+  };
+
+  // Show Processing Screen
+  if (processingStep) {
+    return (
+      <div className="max-w-lg mx-auto py-8">
+        <ProcessingScreen
+          currentStep={processingStep}
+          error={processingError}
+          onRetry={handleRetry}
+          onCancel={handleCancel}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-lg mx-auto">
@@ -254,31 +227,84 @@ function NovaConsultaContent() {
 
       {/* Header */}
       <div className="mb-8">
-        <button onClick={() => router.back()} className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-4">
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
+        <button
+          onClick={() => router.back()}
+          className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-4 transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+          </svg>
           Voltar
         </button>
-        <h1 className="text-2xl font-semibold text-foreground">Novo Atendimento</h1>
+
+        {/* Step Indicator */}
+        <div className="flex items-center gap-3 mb-6">
+          <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold ${step >= 1 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+            1
+          </div>
+          <div className={`flex-1 h-1 rounded-full ${step >= 2 ? 'bg-primary' : 'bg-muted'}`} />
+          <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold ${step >= 2 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+            2
+          </div>
+        </div>
+
+        <h1 className="text-2xl font-semibold text-foreground">
+          {step === 1 ? "Dados do Paciente" : "Gravar Consulta"}
+        </h1>
+        <p className="text-muted-foreground mt-1">
+          {step === 1
+            ? "Informe os dados basicos do paciente"
+            : `Gravando consulta de ${patientName}`}
+        </p>
       </div>
 
+      {/* Error Message */}
+      {error && (
+        <div className="mb-6 p-4 rounded-xl bg-destructive/10 text-destructive text-sm flex items-center gap-3">
+          <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+          </svg>
+          {error}
+        </div>
+      )}
+
+      {/* Step 1: Patient Form */}
       {step === 1 && (
-        <div className="medical-card p-6">
-          {/* Patient Form (Same as before) */}
+        <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
           <form onSubmit={handlePatientSubmit} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="name">Nome do paciente</Label>
-              <Input id="name" value={patientName} onChange={(e) => setPatientName(e.target.value)} required />
+              <Label htmlFor="name" className="text-sm font-medium">
+                Nome completo do paciente
+              </Label>
+              <Input
+                id="name"
+                value={patientName}
+                onChange={(e) => setPatientName(e.target.value)}
+                placeholder="Digite o nome do paciente"
+                className="h-12 rounded-xl"
+                required
+              />
             </div>
-            {/* ... Omitted other fields for brevity, assuming they exist ... */}
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Idade</Label>
-                <Input type="number" value={patientAge} onChange={(e) => setPatientAge(e.target.value)} />
+                <Label className="text-sm font-medium">Idade</Label>
+                <Input
+                  type="number"
+                  value={patientAge}
+                  onChange={(e) => setPatientAge(e.target.value)}
+                  placeholder="Ex: 45"
+                  className="h-12 rounded-xl"
+                  min="0"
+                  max="150"
+                />
               </div>
               <div className="space-y-2">
-                <Label>Sexo</Label>
+                <Label className="text-sm font-medium">Sexo</Label>
                 <Select value={patientSex} onValueChange={setPatientSex}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectTrigger className="h-12 rounded-xl">
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="M">Masculino</SelectItem>
                     <SelectItem value="F">Feminino</SelectItem>
@@ -286,33 +312,100 @@ function NovaConsultaContent() {
                 </Select>
               </div>
             </div>
-            <Button type="submit" size="lg" className="w-full mt-6" disabled={loading}>
-              {loading ? "Registrando..." : "Continuar"}
+
+            <Button
+              type="submit"
+              size="lg"
+              className="w-full h-12 rounded-xl mt-6"
+              disabled={loading || !patientName.trim()}
+            >
+              {loading ? (
+                <>
+                  <svg className="w-5 h-5 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  Registrando...
+                </>
+              ) : (
+                <>
+                  Continuar para Gravacao
+                  <svg className="w-5 h-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                  </svg>
+                </>
+              )}
             </Button>
           </form>
         </div>
       )}
 
+      {/* Step 2: Recording */}
       {step === 2 && (
         <div className="space-y-6">
-          <div className="bg-muted/30 p-4 rounded-xl mb-4 text-center">
-            <p className="text-sm font-medium">Transcrição em Tempo Real</p>
-            <p className="text-xs text-muted-foreground mt-1 min-h-[1.5rem] italic">
-              {accumulatedTranscript.slice(-100) || "Aguardando fala..."}
-              {accumulatedTranscript.length > 100 && "..."}
-            </p>
+          {/* Patient Info Card */}
+          <div className="bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/20 rounded-2xl p-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+                <span className="text-lg font-semibold text-primary">
+                  {patientName.charAt(0).toUpperCase()}
+                </span>
+              </div>
+              <div>
+                <p className="font-medium text-foreground">{patientName}</p>
+                <p className="text-sm text-muted-foreground">
+                  {patientAge && `${patientAge} anos`}
+                  {patientAge && patientSex && " • "}
+                  {patientSex === "M" ? "Masculino" : patientSex === "F" ? "Feminino" : ""}
+                </p>
+              </div>
+            </div>
           </div>
 
-          <SegmentedAudioRecorder
-            onAudioSegment={handleAudioSegment}
-            onComplete={finalizeVisit}
-            disabled={loading}
-          />
+          {/* Audio Recorder Card */}
+          <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+            <AudioRecorder
+              onAudioReady={handleAudioReady}
+              disabled={loading}
+            />
+          </div>
 
-          <div className="flex items-start gap-3 p-4 rounded-xl bg-blue-50/50 border border-blue-100 mt-4">
-            <div className="text-xs text-blue-800">
-              <p className="font-semibold">Gravação Contínua Ativada</p>
-              <p>O áudio é processado em blocos de 3 minutos para garantir estabilidade e contornar limites de tamanho. Você pode gravar sessões longas sem preocupação.</p>
+          {/* Process Button - Shows after recording */}
+          {audioBlob && (
+            <div className="space-y-4">
+              <Button
+                onClick={handleProcessAudio}
+                size="lg"
+                className="w-full h-14 rounded-xl text-base gap-3"
+                disabled={loading}
+              >
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
+                </svg>
+                Processar com IA
+              </Button>
+
+              <p className="text-center text-xs text-muted-foreground">
+                O audio sera transcrito e uma nota SOAP sera gerada automaticamente
+              </p>
+            </div>
+          )}
+
+          {/* Info Box */}
+          <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded-xl p-4">
+            <div className="flex items-start gap-3">
+              <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+              </svg>
+              <div>
+                <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                  Gravacao continua
+                </p>
+                <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                  Voce pode gravar consultas longas sem preocupacao. Use o botao de pausa
+                  para interromper temporariamente se necessario.
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -321,7 +414,6 @@ function NovaConsultaContent() {
   );
 }
 
-// Wrap in Suspense for useSearchParams
 export default function NovaConsultaPage() {
   return (
     <Suspense
