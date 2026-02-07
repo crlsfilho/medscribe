@@ -299,9 +299,13 @@ export default function ConsultaPage() {
         </div>
 
         <div className="flex-1 overflow-y-auto p-3">
-          {visit.audioUrl && (
+          {visit.audioUrl && visit.audioUrl !== "processed-in-memory" && (
             <div className="bg-muted/30 rounded-lg p-2 border border-border/50 mb-3">
-              <audio src={`/api${visit.audioUrl}`} controls className="w-full h-8" />
+              <audio
+                src={visit.audioUrl.startsWith("http") ? visit.audioUrl : `/api${visit.audioUrl}`}
+                controls
+                className="w-full h-8"
+              />
             </div>
           )}
 

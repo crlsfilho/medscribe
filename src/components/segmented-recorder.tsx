@@ -13,90 +13,133 @@ interface SegmentedAudioRecorderProps {
 export function SegmentedAudioRecorder({ onAudioSegment, onComplete, disabled }: SegmentedAudioRecorderProps) {
     const [isRecording, setIsRecording] = useState(false);
     const [duration, setDuration] = useState(0);
-    const [segmentsCount, setSegmentsCount] = useState(0);
+    const [chunkIndex, setChunkIndex] = useState(0);
 
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const streamRef = useRef<MediaStream | null>(null);
-    const intervalRef = useRef<NodeJS.Timeout | null>(null);
-    const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const timerRef = useRef<NodeJS.Timeout | null>(null);
+    const rotationTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const chunkIndexRef = useRef(0); // Ref to avoid closure staleness in timers
 
-    // Constants
-    const SEGMENT_DURATION_MS = 3 * 60 * 1000; // 3 minutes per segment (safe for < 4.5MB)
+    // Duration of each segment (3 minutes)
+    const SEGMENT_MS = 3 * 60 * 1000;
 
-    const stopRecording = useCallback(() => {
+    const getSupportedMimeType = () => {
+        const types = [
+            "audio/webm;codecs=opus",
+            "audio/webm",
+            "audio/mp4",
+            "audio/ogg",
+            "audio/wav"
+        ];
+        for (const type of types) {
+            if (MediaRecorder.isTypeSupported(type)) return type;
+        }
+        return "";
+    };
+
+    const stopRecording = useCallback(async () => {
+        console.log("Stopping recording...");
+
+        // Clear timers
+        if (timerRef.current) clearInterval(timerRef.current);
+        if (rotationTimerRef.current) clearTimeout(rotationTimerRef.current);
+
+        // Stop current recorder
         if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
             mediaRecorderRef.current.stop();
+            // processing of the final chunk happens in ondataavailable
         }
 
+        // Stop stream
         if (streamRef.current) {
             streamRef.current.getTracks().forEach(track => track.stop());
             streamRef.current = null;
         }
 
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        if (durationIntervalRef.current) clearInterval(durationIntervalRef.current);
-
         setIsRecording(false);
+        // We do NOT call onComplete here immediately because the last chunk might still be uploading.
+        // We wait a tick or let the user click "Finish" which called this.
         onComplete();
     }, [onComplete]);
 
     const startNewSegment = useCallback(() => {
         if (!streamRef.current) return;
 
+        const mimeType = getSupportedMimeType();
+        if (!mimeType) {
+            toast.error("Nenhum formato de áudio suportado pelo navegador.");
+            return;
+        }
+
+        console.log(`Starting segment ${chunkIndexRef.current} with mime: ${mimeType}`);
+
         // Stop previous if active
         if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+            // This will trigger 'dataavailable' for the ending segment
             mediaRecorderRef.current.stop();
         }
 
-        // Start new recorder instance for clean header
-        const recorder = new MediaRecorder(streamRef.current, {
-            mimeType: "audio/webm;codecs=opus",
-            // bitsPerSecond: 16000 // Voice optimization (optional, some browsers ignore)
-        });
+        try {
+            const recorder = new MediaRecorder(streamRef.current, { mimeType });
 
-        recorder.ondataavailable = async (e) => {
-            if (e.data.size > 0) {
-                try {
-                    // Upload immediately
-                    await onAudioSegment(e.data, segmentsCount);
-                    setSegmentsCount(prev => prev + 1);
-                } catch (err) {
-                    console.error("Segment upload failed", err);
-                    toast.error("Erro ao enviar segmento de áudio. Verifique sua conexão.");
+            // Current segment index for this recorder instance
+            const currentSegmentIdx = chunkIndexRef.current;
+
+            recorder.ondataavailable = async (e) => {
+                if (e.data.size > 0) {
+                    console.log(`Segment ${currentSegmentIdx} data available: ${e.data.size} bytes`);
+                    await onAudioSegment(e.data, currentSegmentIdx);
                 }
-            }
-        };
+            };
 
-        recorder.start();
-        mediaRecorderRef.current = recorder;
+            recorder.start();
+            mediaRecorderRef.current = recorder;
 
-    }, [onAudioSegment, segmentsCount]);
+            // Advance index for the NEXT segment
+            chunkIndexRef.current += 1;
+            setChunkIndex(chunkIndexRef.current);
+
+            // Schedule next rotation
+            rotationTimerRef.current = setTimeout(() => {
+                startNewSegment();
+            }, SEGMENT_MS);
+
+        } catch (err) {
+            console.error("Failed to create MediaRecorder", err);
+            toast.error("Erro ao iniciar gravador.");
+            stopRecording();
+        }
+    }, [onAudioSegment, SEGMENT_MS, stopRecording]); // Added stopRecording to dependencies
 
     const startRecording = async () => {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const stream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true
+                }
+            });
+
             streamRef.current = stream;
             setIsRecording(true);
             setDuration(0);
-            setSegmentsCount(0);
+
+            chunkIndexRef.current = 0;
+            setChunkIndex(0);
 
             // Start first segment
             startNewSegment();
 
-            // Duration Timer
-            durationIntervalRef.current = setInterval(() => {
+            // UI Duration Timer
+            timerRef.current = setInterval(() => {
                 setDuration(prev => prev + 1);
             }, 1000);
 
-            // Segment Timer
-            intervalRef.current = setInterval(() => {
-                console.log("Rotating segment...");
-                startNewSegment();
-            }, SEGMENT_DURATION_MS);
-
         } catch (err) {
-            console.error("Error starting recording:", err);
-            toast.error("Erro ao acessar microfone. Verifique as permissões.");
+            console.error("Error accessing microphone:", err);
+            toast.error("Erro ao acessar microfone. Verifique permissões.");
         }
     };
 
@@ -106,7 +149,6 @@ export function SegmentedAudioRecorder({ onAudioSegment, onComplete, disabled }:
         return `${mins}:${secs.toString().padStart(2, "0")}`;
     };
 
-    // Cleanup on unmount
     useEffect(() => {
         return () => {
             if (isRecording) stopRecording();
@@ -120,9 +162,7 @@ export function SegmentedAudioRecorder({ onAudioSegment, onComplete, disabled }:
                     <div className="relative w-24 h-24 flex items-center justify-center">
                         <span className="absolute w-full h-full rounded-full bg-red-100 animate-ping opacity-75"></span>
                         <div className="relative w-20 h-20 bg-red-500 rounded-full flex items-center justify-center shadow-lg">
-                            <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
-                            </svg>
+                            <span className="text-white font-bold text-xs">{chunkIndex}</span>
                         </div>
                     </div>
                     <div className="text-center">
@@ -130,7 +170,7 @@ export function SegmentedAudioRecorder({ onAudioSegment, onComplete, disabled }:
                             {formatTime(duration)}
                         </h3>
                         <p className="text-xs text-muted-foreground mt-1">
-                            Gravando segmento {segmentsCount + 1}...
+                            Gravando... (Segmento atual: {chunkIndex + 1})
                         </p>
                     </div>
                     <Button
@@ -151,7 +191,7 @@ export function SegmentedAudioRecorder({ onAudioSegment, onComplete, disabled }:
                     </div>
                     <div>
                         <h3 className="font-semibold text-lg">Toque para gravar</h3>
-                        <p className="text-sm text-muted-foreground">O áudio será processado em tempo real.</p>
+                        <p className="text-sm text-muted-foreground">Gravação contínua e segura</p>
                     </div>
                     <Button
                         size="lg"

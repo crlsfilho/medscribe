@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { writeFile, readFile, unlink } from "fs/promises";
-import path from "path";
+import { put } from "@vercel/blob";
 import OpenAI from "openai";
 
 export async function POST(request: NextRequest) {
@@ -13,15 +12,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
   }
 
-  // Check Content-Type to determine if we are receiving a file or just a visitId
   try {
     const contentType = request.headers.get("content-type") || "";
     let visitId = "";
-    let audioPath = "";
+    let audioBuffer: Buffer;
     let saveToDb = true;
 
     if (contentType.includes("multipart/form-data")) {
-      // Handle File Upload + Transcription (Production/Vercel Mode)
+      // Handle File Upload + Transcription
       const formData = await request.formData();
       const file = formData.get("audio") as File;
       visitId = formData.get("visitId") as string;
@@ -34,25 +32,33 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Save to /tmp for Vercel
+      // Convert file to buffer
       const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      // Use /tmp directory which is writable in Lambda
-      const tempDir = "/tmp";
-      const filename = `${visitId}-${Date.now()}.webm`;
-      audioPath = path.join(tempDir, filename);
+      audioBuffer = Buffer.from(bytes);
 
-      await writeFile(audioPath, buffer);
+      // Upload to Vercel Blob for persistent storage
+      let audioUrl = "processed-in-memory";
 
-      // Update visit with a placeholder URL (since we don't have permanent storage)
+      if (process.env.BLOB_READ_WRITE_TOKEN) {
+        const filename = `audio/${visitId}-${Date.now()}.webm`;
+        const blob = await put(filename, audioBuffer, {
+          access: "public",
+          contentType: "audio/webm",
+        });
+        audioUrl = blob.url;
+        console.log("Audio uploaded to Vercel Blob:", audioUrl);
+      } else {
+        console.log("No BLOB_READ_WRITE_TOKEN, audio will not be persisted");
+      }
+
+      // Update visit with audio URL
       await prisma.visit.update({
         where: { id: visitId },
-        data: { audioUrl: "processed-in-memory" }
+        data: { audioUrl },
       });
 
     } else {
-      // Legacy/Local Mode (JSON with visitId)
-      // This part fails on Vercel if file was uploaded to ./uploads in a previous request
+      // JSON mode: re-transcribe existing audio
       const body = await request.json();
       visitId = body.visitId;
 
@@ -61,23 +67,42 @@ export async function POST(request: NextRequest) {
       }
 
       const visit = await prisma.visit.findUnique({ where: { id: visitId } });
-      if (!visit?.audioUrl) return NextResponse.json({ error: "Audio não encontrado" }, { status: 404 });
+      if (!visit?.audioUrl) {
+        return NextResponse.json({ error: "Audio não encontrado" }, { status: 404 });
+      }
 
       // If it's the placeholder, we can't re-transcribe
       if (visit.audioUrl === "processed-in-memory") {
-        return NextResponse.json({ error: "Audio processado em memória e não mais disponível." }, { status: 400 });
+        return NextResponse.json(
+          { error: "Audio processado em memória e não mais disponível." },
+          { status: 400 }
+        );
       }
 
-      audioPath = path.join(process.cwd(), visit.audioUrl.startsWith("/") ? visit.audioUrl.slice(1) : visit.audioUrl);
+      // Fetch audio from Vercel Blob URL or local path
+      if (visit.audioUrl.startsWith("http")) {
+        const response = await fetch(visit.audioUrl);
+        if (!response.ok) {
+          return NextResponse.json({ error: "Erro ao buscar audio" }, { status: 500 });
+        }
+        const arrayBuffer = await response.arrayBuffer();
+        audioBuffer = Buffer.from(arrayBuffer);
+      } else {
+        // Legacy: local file path
+        const { readFile } = await import("fs/promises");
+        const path = await import("path");
+        const audioPath = path.join(
+          process.cwd(),
+          visit.audioUrl.startsWith("/") ? visit.audioUrl.slice(1) : visit.audioUrl
+        );
+        audioBuffer = await readFile(audioPath);
+      }
     }
 
-    // --- Transcription Interface ---
-    console.log("Transcribing file:", audioPath);
-
-    // Import OpenAI directly here to be safe and simple
+    // --- Transcription with OpenAI Whisper ---
+    console.log("Transcribing audio...");
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    const audioBuffer = await readFile(audioPath);
-    const audioFile = new File([audioBuffer], "audio.webm", { type: "audio/webm" });
+    const audioFile = new File([new Uint8Array(audioBuffer)], "audio.webm", { type: "audio/webm" });
 
     const transcription = await openai.audio.transcriptions.create({
       file: audioFile,
@@ -89,7 +114,7 @@ export async function POST(request: NextRequest) {
     const formattedText = transcription;
 
     if (saveToDb) {
-      // Update Visit
+      // Update Visit with transcription
       await prisma.visit.update({
         where: { id: visitId },
         data: { transcriptText: formattedText },
@@ -101,27 +126,19 @@ export async function POST(request: NextRequest) {
           userId: session.user.id,
           visitId,
           action: "transcribed",
-          details: "Transcrição gerada via Direct Upload",
+          details: "Transcrição gerada via Whisper API",
         },
       });
     }
 
-    // Cleanup /tmp file
-    if (audioPath.startsWith("/tmp")) {
-      try {
-        await unlink(audioPath);
-      } catch (e) {
-        console.error("Error deleting temp file:", e);
-      }
-    }
-
     return NextResponse.json({
       text: formattedText,
-      segments: [] // returning empty segments for now
+      segments: [],
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Erro na transcrição:", error);
-    return NextResponse.json({ error: `Erro na transcrição: ${error.message}` }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Erro desconhecido";
+    return NextResponse.json({ error: `Erro na transcrição: ${message}` }, { status: 500 });
   }
 }
