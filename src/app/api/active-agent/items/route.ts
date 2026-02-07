@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Parse metadata for each item
-    const itemsWithMetadata = items.map((item) => ({
+    const itemsWithMetadata = items.map((item: any) => ({
       ...item,
       metadata: JSON.parse(item.metadata),
     }));
