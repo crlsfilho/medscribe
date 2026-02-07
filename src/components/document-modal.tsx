@@ -24,7 +24,7 @@ export function DocumentModal({ open, onOpenChange, soap, patient }: DocumentMod
 
     // States for structured data
     const [medications, setMedications] = useState<any[]>([]);
-    const [exams, setExams] = useState<string[]>([]);
+    const [exams, setExams] = useState<{ name: string; tuss_code?: string }[]>([]);
     const [certificate, setCertificate] = useState<any>({ days: "1", reason: "", full_text: "" });
 
     const [generated, setGenerated] = useState(false);
@@ -51,7 +51,12 @@ export function DocumentModal({ open, onOpenChange, soap, patient }: DocumentMod
             if (activeTab === "prescription") {
                 setMedications(data.medications || []);
             } else if (activeTab === "exam") {
-                setExams(data.exams || []);
+                // Handle legacy string[] or new object[]
+                const rawExams = data.exams || [];
+                const formattedExams = rawExams.map((e: any) =>
+                    typeof e === 'string' ? { name: e, tuss_code: "" } : e
+                );
+                setExams(formattedExams);
             } else if (activeTab === "certificate") {
                 setCertificate(data);
             }
@@ -89,9 +94,11 @@ export function DocumentModal({ open, onOpenChange, soap, patient }: DocumentMod
                 toast.error("Adicione pelo menos um exame");
                 return;
             }
+            // Pass simple strings to PDF generator for now, but formatted with code if present
+            const examStrings = exams.map(e => e.tuss_code ? `${e.name} (TUSS: ${e.tuss_code})` : e.name);
             blob = generateExamPDF({
                 ...commonData,
-                exams: exams.filter(e => e.trim().length > 0)
+                exams: examStrings
             });
             fileName = `pedido-exames-${patient.name}.pdf`;
         } else if (activeTab === "certificate") {
@@ -118,44 +125,46 @@ export function DocumentModal({ open, onOpenChange, soap, patient }: DocumentMod
 
     // --- RENDER HELPERS ---
 
-    const renderPrescriptionEditor = () => (
-        <div className="space-y-4">
-            {medications.map((med, idx) => (
-                <div key={idx} className="flex gap-2 items-start p-2 border rounded-lg bg-card text-xs">
-                    <div className="flex-1 space-y-1">
-                        <Input
-                            value={med.name}
-                            onChange={(e) => {
-                                const newMeds = [...medications];
-                                newMeds[idx].name = e.target.value;
-                                setMedications(newMeds);
-                            }}
-                            className="h-7 text-sm font-semibold border-none px-0 shadow-none focus-visible:ring-0"
-                            placeholder="Nome do Medicamento"
-                        />
-                        <Input
-                            value={med.instructions}
-                            onChange={(e) => {
-                                const newMeds = [...medications];
-                                newMeds[idx].instructions = e.target.value;
-                                setMedications(newMeds);
-                            }}
-                            className="h-6 text-xs text-muted-foreground border-none px-0 shadow-none focus-visible:ring-0"
-                            placeholder="Posologia"
-                        />
-                    </div>
+    const renderExamEditor = () => (
+        <div className="space-y-3">
+            <div className="flex justify-between items-center pb-2 border-b border-border/50">
+                <span className="text-xs font-medium text-muted-foreground w-2/3">Exame / Procedimento</span>
+                <span className="text-xs font-medium text-muted-foreground w-1/3 pl-2">Código TUSS</span>
+            </div>
+            {exams.map((exam, idx) => (
+                <div key={idx} className="flex gap-2 items-center">
+                    <Input
+                        value={exam.name}
+                        onChange={(e) => {
+                            const newExams = [...exams];
+                            newExams[idx].name = e.target.value;
+                            setExams(newExams);
+                        }}
+                        className="flex-grow h-8 text-sm"
+                        placeholder="Nome do Exame"
+                    />
+                    <Input
+                        value={exam.tuss_code || ""}
+                        onChange={(e) => {
+                            const newExams = [...exams];
+                            newExams[idx].tuss_code = e.target.value;
+                            setExams(newExams);
+                        }}
+                        className="w-1/3 h-8 text-xs font-mono"
+                        placeholder="00000000"
+                    />
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6 text-red-500 hover:text-red-700 hover:bg-red-50"
-                        onClick={() => setMedications(medications.filter((_, i) => i !== idx))}
+                        className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 shrink-0"
+                        onClick={() => setExams(exams.filter((_, i) => i !== idx))}
                     >
                         ✕
                     </Button>
                 </div>
             ))}
-            <Button variant="outline" size="sm" onClick={() => setMedications([...medications, { name: "", instructions: "" }])}>
-                + Adicionar Item
+            <Button variant="outline" size="sm" onClick={() => setExams([...exams, { name: "", tuss_code: "" }])} className="w-full mt-2 border-dashed">
+                + Adicionar Exame
             </Button>
         </div>
     );
@@ -170,7 +179,7 @@ export function DocumentModal({ open, onOpenChange, soap, patient }: DocumentMod
                 <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setGenerated(false); }} className="flex-1">
                     <TabsList className="grid w-full grid-cols-3 mb-4">
                         <TabsTrigger value="prescription">Receita</TabsTrigger>
-                        <TabsTrigger value="exam">Exames</TabsTrigger>
+                        <TabsTrigger value="exam">Exames (TISS)</TabsTrigger>
                         <TabsTrigger value="certificate">Atestado</TabsTrigger>
                     </TabsList>
 
@@ -197,16 +206,50 @@ export function DocumentModal({ open, onOpenChange, soap, patient }: DocumentMod
                                     <Button variant="ghost" size="sm" onClick={() => setGenerated(false)} className="text-xs h-7">Refazer</Button>
                                 </div>
 
-                                {activeTab === "prescription" && renderPrescriptionEditor()}
-
-                                {activeTab === "exam" && (
-                                    <Textarea
-                                        value={exams.join("\n")}
-                                        onChange={(e) => setExams(e.target.value.split("\n"))}
-                                        className="min-h-[200px]"
-                                        placeholder="Lista de exames..."
-                                    />
+                                {activeTab === "prescription" && (
+                                    <div className="space-y-4">
+                                        {/* Simplified In-line Prescription Editor for context */}
+                                        {medications.map((med, idx) => (
+                                            <div key={idx} className="flex gap-2 items-start p-2 border rounded-lg bg-card text-xs">
+                                                <div className="flex-1 space-y-1">
+                                                    <Input
+                                                        value={med.name}
+                                                        onChange={(e) => {
+                                                            const newMeds = [...medications];
+                                                            newMeds[idx].name = e.target.value;
+                                                            setMedications(newMeds);
+                                                        }}
+                                                        className="h-7 text-sm font-semibold border-none px-0 shadow-none focus-visible:ring-0"
+                                                        placeholder="Nome do Medicamento"
+                                                    />
+                                                    <Input
+                                                        value={med.instructions}
+                                                        onChange={(e) => {
+                                                            const newMeds = [...medications];
+                                                            newMeds[idx].instructions = e.target.value;
+                                                            setMedications(newMeds);
+                                                        }}
+                                                        className="h-6 text-xs text-muted-foreground border-none px-0 shadow-none focus-visible:ring-0"
+                                                        placeholder="Posologia"
+                                                    />
+                                                </div>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-6 w-6 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                    onClick={() => setMedications(medications.filter((_, i) => i !== idx))}
+                                                >
+                                                    ✕
+                                                </Button>
+                                            </div>
+                                        ))}
+                                        <Button variant="outline" size="sm" onClick={() => setMedications([...medications, { name: "", instructions: "" }])}>
+                                            + Adicionar Item
+                                        </Button>
+                                    </div>
                                 )}
+
+                                {activeTab === "exam" && renderExamEditor()}
 
                                 {activeTab === "certificate" && (
                                     <div className="space-y-3">

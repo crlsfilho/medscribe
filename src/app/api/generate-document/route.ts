@@ -49,16 +49,21 @@ export async function POST(request: NextRequest) {
             `;
         } else if (type === "exam") {
             specificPrompt = `
-            ACAO: Gerar um Pedido de Exames.
+            ACAO: Gerar um Pedido de Exames (Guia TISS/SADT compatível).
             COMPORTAMENTO:
             1. Liste exames complementares necessários para confirmar o diagnóstico ou rotina.
             2. Se o SOAP já citar exames solicitados, use-os.
             3. Se não citar, SUGIRA exames pertinentes ao quadro (ex: Dengue -> Hemograma + Plaquetas).
+            4. TENTE incluir o código TUSS (Terminologia Unificada da Saúde Suplementar) para cada exame se souber.
+               - Ex: Hemograma -> 40304361
+               - Ex: Raio-X Tórax -> 40805018
 
             SAIDA JSON OBRIGATORIA:
             {
-                "exams": ["Exame 1", "Exame 2"],
-                "clinical_indication": "Justificativa clínica breve"
+                "exams": [
+                    { "name": "Nome do Exame", "tuss_code": "Código numérico ou N/A" }
+                ],
+                "clinical_indication": "Justificativa clínica breve (ex: Cid R50 - Febre a esclarecer)"
             }
             `;
         } else if (type === "certificate") {
