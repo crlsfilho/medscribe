@@ -151,26 +151,21 @@ function NovaConsultaContent() {
     setProcessingStep("uploading");
 
     try {
-      // Upload audio
+      // Transcribe Request (Direct Upload)
+      // We skip /api/upload to avoid Vercel file persistence issues.
+      // The file is sent directly to the transcribe endpoint which handles it in /tmp
+
+      setProcessingStep("transcribing");
+
       const formData = new FormData();
       formData.append("audio", audioBlob, "recording.webm");
       formData.append("visitId", visitId);
 
-      const uploadResponse = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!uploadResponse.ok) {
-        throw new Error("Erro ao enviar audio");
-      }
-
-      // Transcribe
-      setProcessingStep("transcribing");
       const transcribeResponse = await fetch("/api/transcribe", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ visitId }),
+        // Do NOT set Content-Type header when sending FormData, 
+        // the browser sets it automatically with the boundary
+        body: formData,
       });
 
       if (!transcribeResponse.ok) {
@@ -274,11 +269,10 @@ function NovaConsultaContent() {
       {/* Progress Steps */}
       <div className="flex items-center gap-3 mb-8">
         <div
-          className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
-            step >= 1
+          className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${step >= 1
               ? "bg-primary text-primary-foreground"
               : "bg-muted text-muted-foreground"
-          }`}
+            }`}
         >
           {step > 1 ? (
             <svg
@@ -302,11 +296,10 @@ function NovaConsultaContent() {
           className={`flex-1 h-1 rounded-full ${step >= 2 ? "bg-primary" : "bg-muted"}`}
         ></div>
         <div
-          className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
-            step >= 2
+          className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${step >= 2
               ? "bg-primary text-primary-foreground"
               : "bg-muted text-muted-foreground"
-          }`}
+            }`}
         >
           2
         </div>
