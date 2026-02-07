@@ -155,22 +155,68 @@ function NovaConsultaContent() {
       // We skip /api/upload to avoid Vercel file persistence issues.
       // The file is sent directly to the transcribe endpoint which handles it in /tmp
 
+
+
       setProcessingStep("transcribing");
 
-      const formData = new FormData();
-      formData.append("audio", audioBlob, "recording.webm");
-      formData.append("visitId", visitId);
+      // Chunking Logic for Vercel (4.5MB Limit Bypass)
+      const CHUNK_SIZE = 2 * 1024 * 1024; // 2MB safe chunk
+      const totalSize = audioBlob.size;
+      let start = 0;
+      let chunkIndex = 0;
+      let fullTranscript = "";
 
-      const transcribeResponse = await fetch("/api/transcribe", {
-        method: "POST",
-        // Do NOT set Content-Type header when sending FormData, 
-        // the browser sets it automatically with the boundary
-        body: formData,
+      const totalChunks = Math.ceil(totalSize / CHUNK_SIZE);
+
+      while (start < totalSize) {
+        chunkIndex++;
+        // Update UI or Logger if possible (e.g. "Sending part 1 of 5...")
+        console.log(`Sending chunk ${chunkIndex}/${totalChunks}`);
+
+        const end = Math.min(start + CHUNK_SIZE, totalSize);
+        const chunk = audioBlob.slice(start, end, "audio/webm");
+
+        const formData = new FormData();
+        formData.append("audio", chunk, `part-${chunkIndex}.webm`);
+        formData.append("visitId", visitId);
+        formData.append("saveToDb", "false"); // Don't save partials to DB
+
+        const response = await fetch("/api/transcribe", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          // Error handling...
+          let errMsg = "Erro no envio de parte do áudio";
+          try {
+            const data = await response.json();
+            errMsg = data.error || errMsg;
+          } catch (e) {
+            const txt = await response.text();
+            if (txt.includes("Too Large")) errMsg = "Arquivo muito grande (Chunk)";
+          }
+          throw new Error(errMsg);
+        }
+
+        const data = await response.json();
+        // Append text with a space
+        if (data.text) {
+          fullTranscript += (fullTranscript ? " " : "") + data.text;
+        }
+
+        start = end;
+      }
+
+      // Final Save to DB (Full Text)
+      const saveResponse = await fetch(`/api/visits/${visitId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transcriptText: fullTranscript })
       });
 
-      if (!transcribeResponse.ok) {
-        const data = await transcribeResponse.json();
-        throw new Error(data.error || "Erro ao transcrever audio");
+      if (!saveResponse.ok) {
+        throw new Error("Erro ao salvar transcrição completa no banco.");
       }
 
       setProcessingStep("complete");
@@ -270,8 +316,8 @@ function NovaConsultaContent() {
       <div className="flex items-center gap-3 mb-8">
         <div
           className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${step >= 1
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted text-muted-foreground"
+            ? "bg-primary text-primary-foreground"
+            : "bg-muted text-muted-foreground"
             }`}
         >
           {step > 1 ? (
@@ -297,8 +343,8 @@ function NovaConsultaContent() {
         ></div>
         <div
           className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${step >= 2
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted text-muted-foreground"
+            ? "bg-primary text-primary-foreground"
+            : "bg-muted text-muted-foreground"
             }`}
         >
           2

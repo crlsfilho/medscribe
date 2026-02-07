@@ -84,23 +84,29 @@ export async function POST(request: NextRequest) {
       response_format: "text",
     });
 
-    const formattedText = transcription; // Skipping diarization for now to be safe/fast
+    const formattedText = transcription;
 
-    // Update Visit
-    await prisma.visit.update({
-      where: { id: visitId },
-      data: { transcriptText: formattedText },
-    });
+    // Only update DB if requested (default to true to keep backward compatibility)
+    // When chunking, we send saveToDb=false
+    const saveToDb = formData.get("saveToDb") !== "false";
 
-    // Audit Log
-    await prisma.auditLog.create({
-      data: {
-        userId: session.user.id,
-        visitId,
-        action: "transcribed",
-        details: "Transcrição gerada via Direct Upload (Vercel Fix)",
-      },
-    });
+    if (saveToDb) {
+      // Update Visit
+      await prisma.visit.update({
+        where: { id: visitId },
+        data: { transcriptText: formattedText },
+      });
+
+      // Audit Log
+      await prisma.auditLog.create({
+        data: {
+          userId: session.user.id,
+          visitId,
+          action: "transcribed",
+          details: "Transcrição gerada via Direct Upload",
+        },
+      });
+    }
 
     // Cleanup /tmp file
     if (audioPath.startsWith("/tmp")) {
