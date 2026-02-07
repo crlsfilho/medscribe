@@ -1,0 +1,130 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime      @default(now())
+  patients     Patient[]
+  visits       Visit[]
+  auditLogs    AuditLog[]
+  appointments Appointment[]
+}
+
+model Patient {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  age       Int?
+  sex       String?
+  createdAt DateTime @default(now())
+  visits    Visit[]
+
+  @@index([userId])
+}
+
+model Visit {
+  id              String                    @id @default(cuid())
+  userId          String
+  user            User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  patientId       String
+  patient         Patient                   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  audioUrl        String?
+  transcriptText  String?
+  soapJson        String?
+  soapText        String?
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+  suggestions     NormalizationSuggestion[]
+  auditLogs       AuditLog[]
+  actionableItems ActionableItem[]
+
+  @@index([userId])
+  @@index([patientId])
+}
+
+// Active Agent: Ações detectadas automaticamente
+model ActionableItem {
+  id          String    @id @default(cuid())
+  visitId     String
+  visit       Visit     @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  type        String    // "tiss_form" | "referral_letter" | "follow_up"
+  confidence  Float     // 0-1 confidence score
+  sourceText  String    // Texto original que gerou a sugestão
+  status      String    @default("suggested") // suggested | accepted | dismissed | completed
+  metadata    String    // JSON com dados específicos do tipo
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  @@index([visitId])
+  @@index([type, status])
+}
+
+// Tabela de códigos TUSS para procedimentos
+model TussCode {
+  id          String  @id @default(cuid())
+  code        String  @unique
+  description String
+  table       String  // "22" (procedimentos), "18", "19", "20"
+  category    String? // Categoria do procedimento
+  synonyms    String? // JSON array de sinônimos
+
+  @@index([code])
+}
+
+model NormalizationSuggestion {
+  id              String   @id @default(cuid())
+  visitId         String
+  visit           Visit    @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  type            String
+  rawText         String
+  normalizedCode  String?
+  normalizedLabel String?
+  confidence      Float?
+  accepted        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  @@index([visitId])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  visitId   String?
+  visit     Visit?   @relation(fields: [visitId], references: [id], onDelete: SetNull)
+  action    String
+  details   String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([visitId])
+}
+
+model Appointment {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  patientName String
+  patientAge  Int?
+  patientSex  String?
+  scheduledAt DateTime
+  duration    Int       @default(30) // minutes
+  notes       String?
+  status      String    @default("scheduled") // scheduled, completed, cancelled
+  visitId     String?   // Link to actual visit when consultation happens
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([scheduledAt])
+}

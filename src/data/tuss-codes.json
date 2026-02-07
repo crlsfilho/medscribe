@@ -1,0 +1,667 @@
+[
+  {
+    "code": "40301079",
+    "description": "Ressonancia magnetica de coluna cervical",
+    "table": "22",
+    "category": "Ressonancia Magnetica",
+    "synonyms": ["RM cervical", "ressonancia cervical", "ressonancia da cervical"]
+  },
+  {
+    "code": "40301087",
+    "description": "Ressonancia magnetica de coluna toracica",
+    "table": "22",
+    "category": "Ressonancia Magnetica",
+    "synonyms": ["RM toracica", "ressonancia toracica", "ressonancia da toracica"]
+  },
+  {
+    "code": "40301117",
+    "description": "Ressonancia magnetica de coluna lombar",
+    "table": "22",
+    "category": "Ressonancia Magnetica",
+    "synonyms": ["RM lombar", "ressonancia lombar", "ressonancia da lombar", "RM coluna lombar"]
+  },
+  {
+    "code": "40301095",
+    "description": "Ressonancia magnetica de cranio",
+    "table": "22",
+    "category": "Ressonancia Magnetica",
+    "synonyms": ["RM cranio", "ressonancia cranio", "RM cabeca", "ressonancia cerebral"]
+  },
+  {
+    "code": "40301150",
+    "description": "Ressonancia magnetica de joelho",
+    "table": "22",
+    "category": "Ressonancia Magnetica",
+    "synonyms": ["RM joelho", "ressonancia joelho"]
+  },
+  {
+    "code": "40301168",
+    "description": "Ressonancia magnetica de ombro",
+    "table": "22",
+    "category": "Ressonancia Magnetica",
+    "synonyms": ["RM ombro", "ressonancia ombro"]
+  },
+  {
+    "code": "40301125",
+    "description": "Ressonancia magnetica de abdomen superior",
+    "table": "22",
+    "category": "Ressonancia Magnetica",
+    "synonyms": ["RM abdomen", "ressonancia abdomen"]
+  },
+  {
+    "code": "40301133",
+    "description": "Ressonancia magnetica de pelve",
+    "table": "22",
+    "category": "Ressonancia Magnetica",
+    "synonyms": ["RM pelve", "ressonancia pelve", "RM pelvica"]
+  },
+  {
+    "code": "40201015",
+    "description": "Tomografia computadorizada de cranio",
+    "table": "22",
+    "category": "Tomografia Computadorizada",
+    "synonyms": ["TC cranio", "tomografia cranio", "CT cabeca", "tomo de cabeca"]
+  },
+  {
+    "code": "40201058",
+    "description": "Tomografia computadorizada de torax",
+    "table": "22",
+    "category": "Tomografia Computadorizada",
+    "synonyms": ["TC torax", "tomografia torax", "CT torax", "tomo de torax"]
+  },
+  {
+    "code": "40201066",
+    "description": "Tomografia computadorizada de abdomen total",
+    "table": "22",
+    "category": "Tomografia Computadorizada",
+    "synonyms": ["TC abdomen", "tomografia abdomen", "CT abdomen", "tomo de abdomen"]
+  },
+  {
+    "code": "40201023",
+    "description": "Tomografia computadorizada de coluna cervical",
+    "table": "22",
+    "category": "Tomografia Computadorizada",
+    "synonyms": ["TC cervical", "tomografia cervical"]
+  },
+  {
+    "code": "40201031",
+    "description": "Tomografia computadorizada de coluna lombar",
+    "table": "22",
+    "category": "Tomografia Computadorizada",
+    "synonyms": ["TC lombar", "tomografia lombar"]
+  },
+  {
+    "code": "40201074",
+    "description": "Tomografia computadorizada de pelve",
+    "table": "22",
+    "category": "Tomografia Computadorizada",
+    "synonyms": ["TC pelve", "tomografia pelve"]
+  },
+  {
+    "code": "40808050",
+    "description": "Hemograma completo",
+    "table": "22",
+    "category": "Exames Laboratoriais - Hematologia",
+    "synonyms": ["hemograma", "exame de sangue completo", "sangue completo"]
+  },
+  {
+    "code": "40302423",
+    "description": "Glicemia de jejum",
+    "table": "22",
+    "category": "Exames Laboratoriais - Bioquimica",
+    "synonyms": ["glicose", "glicemia", "acucar no sangue", "glicose em jejum"]
+  },
+  {
+    "code": "40302504",
+    "description": "Hemoglobina glicada",
+    "table": "22",
+    "category": "Exames Laboratoriais - Bioquimica",
+    "synonyms": ["HbA1c", "hemoglobina glicosilada", "A1c"]
+  },
+  {
+    "code": "40301630",
+    "description": "Colesterol total",
+    "table": "22",
+    "category": "Exames Laboratoriais - Bioquimica",
+    "synonyms": ["colesterol", "CT"]
+  },
+  {
+    "code": "40301648",
+    "description": "HDL colesterol",
+    "table": "22",
+    "category": "Exames Laboratoriais - Bioquimica",
+    "synonyms": ["HDL", "colesterol bom"]
+  },
+  {
+    "code": "40301656",
+    "description": "LDL colesterol",
+    "table": "22",
+    "category": "Exames Laboratoriais - Bioquimica",
+    "synonyms": ["LDL", "colesterol ruim"]
+  },
+  {
+    "code": "40301664",
+    "description": "Triglicerideos",
+    "table": "22",
+    "category": "Exames Laboratoriais - Bioquimica",
+    "synonyms": ["triglicerides", "TG"]
+  },
+  {
+    "code": "40302636",
+    "description": "Ureia",
+    "table": "22",
+    "category": "Exames Laboratoriais - Bioquimica",
+    "synonyms": ["ureia serica"]
+  },
+  {
+    "code": "40302156",
+    "description": "Creatinina",
+    "table": "22",
+    "category": "Exames Laboratoriais - Bioquimica",
+    "synonyms": ["creatinina serica"]
+  },
+  {
+    "code": "40302733",
+    "description": "Acido urico",
+    "table": "22",
+    "category": "Exames Laboratoriais - Bioquimica",
+    "synonyms": ["acido urico serico", "uricemia"]
+  },
+  {
+    "code": "40301591",
+    "description": "TGO - Transaminase glutamico-oxalacetica",
+    "table": "22",
+    "category": "Exames Laboratoriais - Bioquimica",
+    "synonyms": ["TGO", "AST", "aspartato aminotransferase"]
+  },
+  {
+    "code": "40301583",
+    "description": "TGP - Transaminase glutamico-piruvica",
+    "table": "22",
+    "category": "Exames Laboratoriais - Bioquimica",
+    "synonyms": ["TGP", "ALT", "alanina aminotransferase"]
+  },
+  {
+    "code": "40302571",
+    "description": "TSH - Hormonio tireoestimulante",
+    "table": "22",
+    "category": "Exames Laboratoriais - Hormonios",
+    "synonyms": ["TSH", "tireoestimulante"]
+  },
+  {
+    "code": "40302580",
+    "description": "T4 livre",
+    "table": "22",
+    "category": "Exames Laboratoriais - Hormonios",
+    "synonyms": ["T4L", "tiroxina livre"]
+  },
+  {
+    "code": "40302598",
+    "description": "T3 total",
+    "table": "22",
+    "category": "Exames Laboratoriais - Hormonios",
+    "synonyms": ["T3", "triiodotironina"]
+  },
+  {
+    "code": "40301800",
+    "description": "PSA total",
+    "table": "22",
+    "category": "Exames Laboratoriais - Marcadores",
+    "synonyms": ["PSA", "antigeno prostatico especifico"]
+  },
+  {
+    "code": "40301818",
+    "description": "PSA livre",
+    "table": "22",
+    "category": "Exames Laboratoriais - Marcadores",
+    "synonyms": ["PSA livre", "PSAL"]
+  },
+  {
+    "code": "40302270",
+    "description": "Vitamina D - 25 hidroxi",
+    "table": "22",
+    "category": "Exames Laboratoriais - Vitaminas",
+    "synonyms": ["vitamina D", "25-OH vitamina D", "calcidiol"]
+  },
+  {
+    "code": "40302288",
+    "description": "Vitamina B12",
+    "table": "22",
+    "category": "Exames Laboratoriais - Vitaminas",
+    "synonyms": ["B12", "cianocobalamina"]
+  },
+  {
+    "code": "40302296",
+    "description": "Acido folico",
+    "table": "22",
+    "category": "Exames Laboratoriais - Vitaminas",
+    "synonyms": ["folato", "vitamina B9"]
+  },
+  {
+    "code": "40302121",
+    "description": "Ferritina",
+    "table": "22",
+    "category": "Exames Laboratoriais - Bioquimica",
+    "synonyms": ["ferritina serica"]
+  },
+  {
+    "code": "40302130",
+    "description": "Ferro serico",
+    "table": "22",
+    "category": "Exames Laboratoriais - Bioquimica",
+    "synonyms": ["ferro", "sideremia"]
+  },
+  {
+    "code": "40311031",
+    "description": "Urina tipo I",
+    "table": "22",
+    "category": "Exames Laboratoriais - Urina",
+    "synonyms": ["EAS", "urina rotina", "sumario de urina", "urina 1"]
+  },
+  {
+    "code": "40311040",
+    "description": "Urocultura",
+    "table": "22",
+    "category": "Exames Laboratoriais - Microbiologia",
+    "synonyms": ["cultura de urina", "urinocultura"]
+  },
+  {
+    "code": "40311058",
+    "description": "Parasitologico de fezes",
+    "table": "22",
+    "category": "Exames Laboratoriais - Parasitologia",
+    "synonyms": ["EPF", "exame de fezes", "protoparasitologico"]
+  },
+  {
+    "code": "40302466",
+    "description": "Coagulograma completo",
+    "table": "22",
+    "category": "Exames Laboratoriais - Coagulacao",
+    "synonyms": ["coagulograma", "tempo de coagulacao"]
+  },
+  {
+    "code": "40302474",
+    "description": "Tempo de protrombina - TP",
+    "table": "22",
+    "category": "Exames Laboratoriais - Coagulacao",
+    "synonyms": ["TP", "TAP", "INR"]
+  },
+  {
+    "code": "40302482",
+    "description": "Tempo de tromboplastina parcial - TTPA",
+    "table": "22",
+    "category": "Exames Laboratoriais - Coagulacao",
+    "synonyms": ["TTPA", "PTT"]
+  },
+  {
+    "code": "40101010",
+    "description": "Radiografia de torax PA e perfil",
+    "table": "22",
+    "category": "Radiografia",
+    "synonyms": ["RX torax", "raio X torax", "radiografia torax", "chapa de torax"]
+  },
+  {
+    "code": "40101028",
+    "description": "Radiografia de coluna cervical",
+    "table": "22",
+    "category": "Radiografia",
+    "synonyms": ["RX cervical", "raio X cervical"]
+  },
+  {
+    "code": "40101036",
+    "description": "Radiografia de coluna lombar",
+    "table": "22",
+    "category": "Radiografia",
+    "synonyms": ["RX lombar", "raio X lombar"]
+  },
+  {
+    "code": "40101044",
+    "description": "Radiografia de joelho",
+    "table": "22",
+    "category": "Radiografia",
+    "synonyms": ["RX joelho", "raio X joelho"]
+  },
+  {
+    "code": "40101052",
+    "description": "Radiografia de ombro",
+    "table": "22",
+    "category": "Radiografia",
+    "synonyms": ["RX ombro", "raio X ombro"]
+  },
+  {
+    "code": "40101060",
+    "description": "Radiografia de mao",
+    "table": "22",
+    "category": "Radiografia",
+    "synonyms": ["RX mao", "raio X mao"]
+  },
+  {
+    "code": "40101079",
+    "description": "Radiografia de pe",
+    "table": "22",
+    "category": "Radiografia",
+    "synonyms": ["RX pe", "raio X pe"]
+  },
+  {
+    "code": "40101087",
+    "description": "Radiografia de tornozelo",
+    "table": "22",
+    "category": "Radiografia",
+    "synonyms": ["RX tornozelo", "raio X tornozelo"]
+  },
+  {
+    "code": "40101095",
+    "description": "Radiografia de abdomen simples",
+    "table": "22",
+    "category": "Radiografia",
+    "synonyms": ["RX abdomen", "raio X abdomen"]
+  },
+  {
+    "code": "40501012",
+    "description": "Ultrassonografia de abdomen total",
+    "table": "22",
+    "category": "Ultrassonografia",
+    "synonyms": ["USG abdomen", "ultrassom abdomen", "ecografia abdominal"]
+  },
+  {
+    "code": "40501020",
+    "description": "Ultrassonografia de tireoide",
+    "table": "22",
+    "category": "Ultrassonografia",
+    "synonyms": ["USG tireoide", "ultrassom tireoide", "ecografia tireoide"]
+  },
+  {
+    "code": "40501039",
+    "description": "Ultrassonografia de mamas",
+    "table": "22",
+    "category": "Ultrassonografia",
+    "synonyms": ["USG mamas", "ultrassom mamario", "ecografia mamaria"]
+  },
+  {
+    "code": "40501047",
+    "description": "Ultrassonografia pelvica",
+    "table": "22",
+    "category": "Ultrassonografia",
+    "synonyms": ["USG pelvica", "ultrassom pelvico", "ecografia pelvica"]
+  },
+  {
+    "code": "40501055",
+    "description": "Ultrassonografia transvaginal",
+    "table": "22",
+    "category": "Ultrassonografia",
+    "synonyms": ["USG transvaginal", "ultrassom transvaginal", "USTV"]
+  },
+  {
+    "code": "40501063",
+    "description": "Ultrassonografia de prostata via abdominal",
+    "table": "22",
+    "category": "Ultrassonografia",
+    "synonyms": ["USG prostata", "ultrassom prostata"]
+  },
+  {
+    "code": "40501071",
+    "description": "Ultrassonografia de vias urinarias",
+    "table": "22",
+    "category": "Ultrassonografia",
+    "synonyms": ["USG rins", "ultrassom renal", "USG vias urinarias"]
+  },
+  {
+    "code": "40501080",
+    "description": "Ultrassonografia de articulacao",
+    "table": "22",
+    "category": "Ultrassonografia",
+    "synonyms": ["USG articular", "ultrassom articulacao"]
+  },
+  {
+    "code": "40501098",
+    "description": "Ultrassonografia obstétrica",
+    "table": "22",
+    "category": "Ultrassonografia",
+    "synonyms": ["USG obstetrica", "ultrassom gestacional", "ecografia fetal"]
+  },
+  {
+    "code": "40501101",
+    "description": "Ultrassonografia morfologica",
+    "table": "22",
+    "category": "Ultrassonografia",
+    "synonyms": ["USG morfologico", "morfologico fetal"]
+  },
+  {
+    "code": "40601013",
+    "description": "Eletrocardiograma convencional",
+    "table": "22",
+    "category": "Cardiologia",
+    "synonyms": ["ECG", "eletro", "eletrocardiograma"]
+  },
+  {
+    "code": "40601021",
+    "description": "Ecocardiograma transtorácico",
+    "table": "22",
+    "category": "Cardiologia",
+    "synonyms": ["ecocardiograma", "eco", "ecocardiograma TT"]
+  },
+  {
+    "code": "40601030",
+    "description": "Teste ergometrico",
+    "table": "22",
+    "category": "Cardiologia",
+    "synonyms": ["teste de esforco", "ergometria", "teste de esteira"]
+  },
+  {
+    "code": "40601048",
+    "description": "Holter 24 horas",
+    "table": "22",
+    "category": "Cardiologia",
+    "synonyms": ["holter", "monitorizacao cardiaca 24h"]
+  },
+  {
+    "code": "40601056",
+    "description": "MAPA 24 horas",
+    "table": "22",
+    "category": "Cardiologia",
+    "synonyms": ["MAPA", "monitorizacao ambulatorial pressao arterial"]
+  },
+  {
+    "code": "40701018",
+    "description": "Eletroencefalograma convencional",
+    "table": "22",
+    "category": "Neurologia",
+    "synonyms": ["EEG", "eletroencefalo"]
+  },
+  {
+    "code": "40701026",
+    "description": "Eletroneuromiografia de membros",
+    "table": "22",
+    "category": "Neurologia",
+    "synonyms": ["ENMG", "eletroneuromiografia"]
+  },
+  {
+    "code": "40801012",
+    "description": "Espirometria",
+    "table": "22",
+    "category": "Pneumologia",
+    "synonyms": ["prova de funcao pulmonar", "espirometria", "PFP"]
+  },
+  {
+    "code": "40801020",
+    "description": "Polissonografia",
+    "table": "22",
+    "category": "Pneumologia",
+    "synonyms": ["polissonografia", "estudo do sono"]
+  },
+  {
+    "code": "40901015",
+    "description": "Endoscopia digestiva alta",
+    "table": "22",
+    "category": "Gastroenterologia",
+    "synonyms": ["EDA", "endoscopia", "esofagogastroduodenoscopia"]
+  },
+  {
+    "code": "40901023",
+    "description": "Colonoscopia",
+    "table": "22",
+    "category": "Gastroenterologia",
+    "synonyms": ["colonoscopia", "colono"]
+  },
+  {
+    "code": "40901031",
+    "description": "Retossigmoidoscopia",
+    "table": "22",
+    "category": "Gastroenterologia",
+    "synonyms": ["retossigmoidoscopia", "reto"]
+  },
+  {
+    "code": "41001012",
+    "description": "Mamografia bilateral",
+    "table": "22",
+    "category": "Mamografia",
+    "synonyms": ["mamografia", "MMG"]
+  },
+  {
+    "code": "41101015",
+    "description": "Densitometria ossea",
+    "table": "22",
+    "category": "Densitometria",
+    "synonyms": ["densitometria", "DEXA", "DXA"]
+  },
+  {
+    "code": "41201018",
+    "description": "Cintilografia de tireoide",
+    "table": "22",
+    "category": "Medicina Nuclear",
+    "synonyms": ["cintilografia tireoide"]
+  },
+  {
+    "code": "41201026",
+    "description": "Cintilografia ossea",
+    "table": "22",
+    "category": "Medicina Nuclear",
+    "synonyms": ["cintilografia ossea", "mapeamento osseo"]
+  },
+  {
+    "code": "41201034",
+    "description": "Cintilografia de perfusao miocardica",
+    "table": "22",
+    "category": "Medicina Nuclear",
+    "synonyms": ["cintilografia miocardica", "SPECT cardiaco"]
+  },
+  {
+    "code": "20101015",
+    "description": "Consulta em consultorio",
+    "table": "18",
+    "category": "Consultas",
+    "synonyms": ["consulta", "atendimento"]
+  },
+  {
+    "code": "20101023",
+    "description": "Consulta em pronto-socorro",
+    "table": "18",
+    "category": "Consultas",
+    "synonyms": ["consulta PS", "emergencia"]
+  },
+  {
+    "code": "30101012",
+    "description": "Sessao de fisioterapia",
+    "table": "22",
+    "category": "Fisioterapia",
+    "synonyms": ["fisioterapia", "fisio", "sessao de fisio"]
+  },
+  {
+    "code": "30101020",
+    "description": "Sessao de acupuntura",
+    "table": "22",
+    "category": "Terapias",
+    "synonyms": ["acupuntura"]
+  },
+  {
+    "code": "30201016",
+    "description": "Sessao de psicoterapia individual",
+    "table": "22",
+    "category": "Psicologia",
+    "synonyms": ["psicoterapia", "terapia", "sessao de terapia"]
+  },
+  {
+    "code": "30301010",
+    "description": "Sessao de fonoaudiologia",
+    "table": "22",
+    "category": "Fonoaudiologia",
+    "synonyms": ["fonoaudiologia", "fono"]
+  },
+  {
+    "code": "31001010",
+    "description": "Biopsia de pele",
+    "table": "22",
+    "category": "Procedimentos",
+    "synonyms": ["biopsia cutanea", "biopsia pele"]
+  },
+  {
+    "code": "31001028",
+    "description": "Excisao de lesao de pele",
+    "table": "22",
+    "category": "Procedimentos",
+    "synonyms": ["exerese", "remocao de lesao"]
+  },
+  {
+    "code": "31001036",
+    "description": "Sutura de ferimento",
+    "table": "22",
+    "category": "Procedimentos",
+    "synonyms": ["sutura", "pontos"]
+  },
+  {
+    "code": "31001044",
+    "description": "Curativo especial",
+    "table": "22",
+    "category": "Procedimentos",
+    "synonyms": ["curativo", "troca de curativo"]
+  },
+  {
+    "code": "31001052",
+    "description": "Drenagem de abscesso",
+    "table": "22",
+    "category": "Procedimentos",
+    "synonyms": ["drenagem", "dreno de abscesso"]
+  },
+  {
+    "code": "31001060",
+    "description": "Infiltracao articular",
+    "table": "22",
+    "category": "Procedimentos",
+    "synonyms": ["infiltracao", "bloqueio articular"]
+  },
+  {
+    "code": "31001079",
+    "description": "Retirada de corpo estranho",
+    "table": "22",
+    "category": "Procedimentos",
+    "synonyms": ["remocao corpo estranho"]
+  },
+  {
+    "code": "31001087",
+    "description": "Imobilizacao provisoria",
+    "table": "22",
+    "category": "Procedimentos",
+    "synonyms": ["imobilizacao", "tala", "gesso"]
+  },
+  {
+    "code": "31101017",
+    "description": "Teste de esforco cardiopulmonar",
+    "table": "22",
+    "category": "Cardiologia",
+    "synonyms": ["ergoespirometria", "teste cardiopulmonar"]
+  },
+  {
+    "code": "31101025",
+    "description": "Cateterismo cardiaco diagnostico",
+    "table": "22",
+    "category": "Cardiologia",
+    "synonyms": ["cateterismo", "CATE"]
+  },
+  {
+    "code": "31101033",
+    "description": "Angioplastia coronariana",
+    "table": "22",
+    "category": "Cardiologia",
+    "synonyms": ["angioplastia", "stent"]
+  }
+]
