@@ -66,7 +66,11 @@ export async function POST(request: NextRequest) {
 
     // Update visit with SOAP data
     const soapJson = JSON.stringify(soapData);
-    const soapText = formatSOAPText(soapData);
+
+    // Prefer the enriched formatted text if available, otherwise fallback to the generated one
+    const soapText = soapData.soapEnrichedFormatted
+      ? `${soapData.prontuarioFormatted || ""}\n\n---\n\n${soapData.soapEnrichedFormatted}`
+      : formatSOAPText(soapData);
 
     await prisma.visit.update({
       where: { id: visitId },

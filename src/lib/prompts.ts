@@ -1,45 +1,58 @@
-export const SOAP_SYSTEM_PROMPT = `Você é um assistente médico especializado em organizar informações de transcrições de consultas médicas.
+export const SOAP_SYSTEM_PROMPT = `Você é um assistente médico especializado em cardiologia, responsável por transcrever áudios de anamneses entre médico e paciente e gerar prontuários clínicos completos.
 
-REGRAS CRÍTICAS:
-1. NUNCA invente informações que não estão explicitamente na transcrição
-2. Se uma seção não tem informações na transcrição, retorne string vazia ou array vazio
-3. Identifique menções a medicamentos e diagnósticos APENAS se explicitamente citados
-4. Seja preciso e objetivo
-5. Mantenha a terminologia médica quando usada na transcrição
-6. Retorne APENAS JSON válido, sem markdown, sem comentários`;
+REGRAS GERAIS:
+1. Transcreva o áudio fielmente, organizando as informações nos campos corretos.
+2. Use terminologia médica técnica adequada.
+3. Quando uma informação não for mencionada na consulta, preencha com "Não relatado".
+4. Quando o paciente negar algo explicitamente, use a forma "Nega..." (ex: "Nega alergias").
+5. Calcule automaticamente: IMC, classificação do IMC, carga tabágica (anos/maço).
+6. Preste atenção especial a dados numéricos (medidas, doses, datas).
+7. Na seção de Análise (#A) e Plano (#P), vá além da simples transcrição: acrescente informações clínicas relevantes, correlações diagnósticas e sugestões baseadas nas últimas diretrizes (SBC/AHA/ACC/ESC).
+8. Retorne APENAS JSON válido, sem markdown, sem comentários fora do JSON.`;
 
-export const SOAP_USER_PROMPT = `Analise a transcrição de consulta médica abaixo e extraia as informações no formato SOAP (Subjective, Objective, Assessment, Plan).
+export const SOAP_USER_PROMPT = `Analise a transcrição de consulta médica abaixo e gere DOIS documentos formatedos (Markdown) e extraia os dados estruturados.
 
 FORMATO DE SAÍDA (JSON estrito):
 {
   "subjective": {
-    "chiefComplaint": "queixa principal do paciente",
-    "historyPresentIllness": "história da doença atual",
-    "raw": "texto original relevante da transcrição"
+    "chiefComplaint": "queixa principal",
+    "historyPresentIllness": "HMA",
+    "raw": "texto relevante"
   },
   "objective": {
-    "vitalSigns": "sinais vitais se mencionados, ou vazio",
-    "physicalExam": "achados do exame físico se mencionados, ou vazio",
-    "labResults": "resultados de exames se mencionados, ou vazio",
-    "raw": "texto original relevante"
+    "vitalSigns": "sinais vitais",
+    "physicalExam": "exame físico",
+    "labResults": "exames",
+    "raw": "texto relevante"
   },
   "assessment": {
-    "diagnoses": ["lista de diagnósticos CITADOS na transcrição"],
-    "differentials": ["diagnósticos diferenciais se mencionados"],
-    "raw": "texto original relevante"
+    "diagnoses": ["diagnosticos citados"],
+    "differentials": ["diagnosticos diferenciais"],
+    "raw": "analise clinica"
   },
   "plan": {
-    "medications": ["medicamentos CITADOS com dose se mencionada"],
-    "procedures": ["procedimentos planejados"],
-    "instructions": ["orientações ao paciente"],
-    "followUp": "informação sobre retorno se mencionado",
-    "raw": "texto original relevante"
+    "medications": ["medicamentos citados"],
+    "procedures": ["procedimentos"],
+    "instructions": ["orientacoes"],
+    "followUp": "retorno",
+    "raw": "plano"
   },
   "mentions": {
-    "medications": ["nome EXATO de cada medicamento como citado na transcrição"],
-    "diagnoses": ["nome EXATO de cada diagnóstico como citado na transcrição"]
-  }
+    "medications": ["lista exata de medicamentos para linkagem"],
+    "diagnoses": ["lista exata de diagnosticos para linkagem"]
+  },
+  "prontuarioFormatted": "MARKDOWN DA 'CONSULTA DIA ...' ATÉ O FIM DO '#CHV (Completo)'. SIGA O MODELO DO USUÁRIO EXATAMENTE.",
+  "soapEnrichedFormatted": "MARKDOWN DA 'NOTA SOAP ENRIQUECIDA' COM #S, #O, #A e #P ENRIQUECIDOS E SUGESTÕES."
 }
+
+MODELO DO PRONTUÁRIO (para o campo 'prontuarioFormatted'):
+**<u>CONSULTA DIA [DATA]</u>**
+**[NOME], [IDADE] anos**
+**ID:** [DADOS ID]
+... (Siga o modelo: #Medicamentos, #Cirurgias, #Alergias, #CHV Resumo, #Vacinas, #Antropometria, Risco CV, #HMA, #HMP, #HMF, #CHV Completo)
+
+MODELO DO SOAP ENRIQUECIDO (para o campo 'soapEnrichedFormatted'):
+... (Siga o modelo: #S Enriquecido, #O Enriquecido, #A Enriquecido - com metas e diretrizes, #P Enriquecido - com sugestões baseadas em evidências)
 
 TRANSCRIÇÃO:
 `;
@@ -72,6 +85,8 @@ export interface SOAPData {
     medications: string[];
     diagnoses: string[];
   };
+  prontuarioFormatted?: string;
+  soapEnrichedFormatted?: string;
 }
 
 export function validateSOAPData(data: unknown): data is SOAPData {
@@ -119,5 +134,7 @@ export function createEmptySOAP(): SOAPData {
       medications: [],
       diagnoses: [],
     },
+    prontuarioFormatted: "",
+    soapEnrichedFormatted: ""
   };
 }
