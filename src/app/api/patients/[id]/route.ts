@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { v4 as uuidv4 } from "uuid";
 
 const updatePatientSchema = z.object({
     name: z.string().min(2, "Nome deve ter no mínimo 2 caracteres").optional(),
@@ -42,6 +43,17 @@ export async function GET(
         );
     }
 
+    // Auto-generate token if missing on read? 
+    // Ideally we do this on write, but for immediate fix on read is safer for UX.
+    if (!patient.shareToken) {
+        const token = uuidv4();
+        await prisma.patient.update({
+            where: { id: patient.id },
+            data: { shareToken: token }
+        });
+        patient.shareToken = token;
+    }
+
     return NextResponse.json(patient);
 }
 
@@ -75,9 +87,15 @@ export async function PATCH(
             );
         }
 
+        // Ensure token exists on update
+        const shareToken = existingPatient.shareToken || uuidv4();
+
         const patient = await prisma.patient.update({
             where: { id },
-            data,
+            data: {
+                ...data,
+                shareToken // Upsert token
+            },
         });
 
         return NextResponse.json(patient);
@@ -123,8 +141,6 @@ export async function DELETE(
         );
     }
 
-    // Delete patient (Cascade will auto-delete visits if configured in Prisma schema)
-    // Even if not cascade, we are deleting the parent.
     await prisma.patient.delete({
         where: { id },
     });
