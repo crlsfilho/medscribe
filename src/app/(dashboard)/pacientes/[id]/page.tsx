@@ -12,7 +12,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { WhatsappPortalButton } from "@/components/whatsapp-portal-button";
 
