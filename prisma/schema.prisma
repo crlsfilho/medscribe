@@ -47,6 +47,12 @@ model Visit {
   suggestions     NormalizationSuggestion[]
   auditLogs       AuditLog[]
   actionableItems ActionableItem[]
+  
+  // Patient Portal Fields
+  laymanSummary   String?   // "Resumo para o paciente" (linguagem simples)
+  carePlan        String?   // JSON: [{med: "Dipirona", instruct: "1cp 6/6h se dor"}, ...]
+  returnChecklist String?   // JSON: ["Exame X", "Retorno em 7 dias"]
+  shareToken      String?   @unique // Token seguro para acesso público (Portal)
 
   @@index([userId])
   @@index([patientId])
@@ -124,7 +130,28 @@ model Appointment {
   visitId     String?   // Link to actual visit when consultation happens
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  preConsultation PreConsultation? 
+  shareToken  String?   @unique // For public access (Pre-Consult link)
 
   @@index([userId])
   @@index([scheduledAt])
+}
+
+model PreConsultation {
+  id              String   @id @default(cuid())
+  appointmentId   String   @unique
+  appointment     Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  
+  // Respostas do paciente
+  chiefComplaint  String?  // Queixa principal
+  history         String?  // Histórico da moléstia atual
+  medications     String?  // Uso contínuo
+  allergies       String?  // Alergias
+  surgeries       String?  // Cirurgias prévias
+  familyHistory   String?  // Histórico familiar (cancer, diabetes etc)
+  lifestyle       String?  // Fumo, álcool, atividade física
+
+  status          String   @default("pending") // pending | completed | imported
+  filledAt        DateTime?
+  createdAt       DateTime @default(now())
 }

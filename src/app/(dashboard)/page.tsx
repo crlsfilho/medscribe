@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/calendar";
 import { MedicalNews } from "@/components/medical-news";
+import { TussSyncButton } from "@/components/tuss-sync-button";
 
 interface Visit {
   id: string;
@@ -172,24 +173,27 @@ export default function DashboardPage() {
             <MedicalNews />
           </div>
         </div>
-        <Link href="/consulta/nova">
-          <Button size="lg" className="tap-target gap-2 rounded-xl shadow-sm">
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 4.5v15m7.5-7.5h-15"
-              />
-            </svg>
-            Novo Atendimento
-          </Button>
-        </Link>
+        <div className="flex gap-2">
+          <TussSyncButton />
+          <Link href="/consulta/nova">
+            <Button size="lg" className="tap-target gap-2 rounded-xl shadow-sm">
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 4.5v15m7.5-7.5h-15"
+                />
+              </svg>
+              Novo Atendimento
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Pending Review Alert */}
