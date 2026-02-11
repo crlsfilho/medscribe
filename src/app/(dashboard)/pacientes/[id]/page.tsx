@@ -51,6 +51,7 @@ export default function PatientDetailPage() {
   const [editName, setEditName] = useState("");
   const [editAge, setEditAge] = useState("");
   const [editSex, setEditSex] = useState("");
+  const [editPhone, setEditPhone] = useState("");
   const [saving, setSaving] = useState(false);
 
   const fetchPatient = useCallback(async () => {
@@ -77,6 +78,7 @@ export default function PatientDetailPage() {
       setEditName(patient.name);
       setEditAge(patient.age?.toString() || "");
       setEditSex(patient.sex || "");
+      setEditPhone(patient.phoneNumber || "");
       setIsEditOpen(true);
     }
   };
@@ -93,6 +95,7 @@ export default function PatientDetailPage() {
           name: editName,
           age: editAge ? parseInt(editAge) : null,
           sex: editSex || null,
+          phoneNumber: editPhone || null,
         }),
       });
 
@@ -549,6 +552,15 @@ export default function PatientDetailPage() {
                   placeholder="Ex: F ou M"
                 />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-phone">WhatsApp (com DDD)</Label>
+              <Input
+                id="edit-phone"
+                value={editPhone}
+                onChange={(e) => setEditPhone(e.target.value)}
+                placeholder="Ex: 11999998888"
+              />
             </div>
             <DialogFooter>
               <Button type="submit" disabled={saving} className="w-full">

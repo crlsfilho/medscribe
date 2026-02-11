@@ -8,6 +8,7 @@ const updatePatientSchema = z.object({
     name: z.string().min(2, "Nome deve ter no mínimo 2 caracteres").optional(),
     age: z.number().nullable().optional(),
     sex: z.string().nullable().optional(),
+    phoneNumber: z.string().nullable().optional(),
 });
 
 export async function GET(
