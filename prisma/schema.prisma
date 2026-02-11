@@ -30,6 +30,7 @@ model Patient {
   shareToken String? @unique // Token fixo do paciente (Portal)
   createdAt DateTime @default(now())
   visits    Visit[]
+  appointments Appointment[]
 
   @@index([userId])
 }
@@ -134,9 +135,13 @@ model Appointment {
   updatedAt   DateTime  @updatedAt
   preConsultation PreConsultation? 
   shareToken  String?   @unique // For public access (Pre-Consult link)
+  
+  patientId   String?
+  patient     Patient?  @relation(fields: [patientId], references: [id])
 
   @@index([userId])
   @@index([scheduledAt])
+  @@index([patientId])
 }
 
 model PreConsultation {

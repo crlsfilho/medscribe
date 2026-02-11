@@ -34,6 +34,7 @@ interface Patient {
   shareToken: string | null;
   createdAt: string;
   visits: Visit[];
+  appointments?: { id: string, scheduledAt: string, shareToken: string | null }[];
 }
 
 export default function PatientDetailPage() {
