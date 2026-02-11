@@ -12,7 +12,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogFooter,
 } from "@/components/ui/dialog";
+import { WhatsappPortalButton } from "@/components/whatsapp-portal-button";
 
 interface Visit {
   id: string;
@@ -29,6 +31,8 @@ interface Patient {
   name: string;
   age: number | null;
   sex: string | null;
+  phoneNumber: string | null;
+  shareToken: string | null;
   createdAt: string;
   visits: Visit[];
 }
@@ -340,6 +344,12 @@ export default function PatientDetailPage() {
 
       {/* Actions */}
       <div className="flex items-center gap-3">
+        <WhatsappPortalButton
+          patientId={patient.id}
+          patientName={patient.name}
+          phoneNumber={patient.phoneNumber || null} // Add to interface if not inferred
+          shareToken={patient.shareToken || null} // Add to interface
+        />
         <Link
           href={`/consulta/nova?patientId=${patient.id}&name=${encodeURIComponent(patient.name)}&age=${patient.age || ""}&sex=${patient.sex || ""}`}
         >

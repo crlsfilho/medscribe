@@ -26,6 +26,8 @@ model Patient {
   name      String
   age       Int?
   sex       String?
+  phoneNumber String? // WhatsApp
+  shareToken String? @unique // Token fixo do paciente (Portal)
   createdAt DateTime @default(now())
   visits    Visit[]
 
