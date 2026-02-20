@@ -33,6 +33,10 @@ export async function GET(
             visits: {
                 orderBy: { createdAt: "desc" },
             },
+            appointments: {
+                orderBy: { scheduledAt: "desc" },
+                take: 5,
+            },
         },
     });
 
