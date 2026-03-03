@@ -1,9 +1,14 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-nunito), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-lora), ui-serif, Georgia, serif;
-  
+
   /* Snug Simple Palette */
   --color-snug-bg: #FAF8F5;
   --color-snug-paper: #FFFFFF;
@@ -150,19 +155,33 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground antialiased font-sans;
     font-feature-settings: "cv11", "ss01";
   }
 
   /* Snug typography */
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-serif font-semibold tracking-tight text-foreground;
   }
 
-  h1 { @apply text-2xl md:text-3xl lg:text-4xl; }
-  h2 { @apply text-xl md:text-2xl lg:text-3xl; }
-  h3 { @apply text-lg md:text-xl lg:text-2xl; }
+  h1 {
+    @apply text-2xl md:text-3xl lg:text-4xl;
+  }
+
+  h2 {
+    @apply text-xl md:text-2xl lg:text-3xl;
+  }
+
+  h3 {
+    @apply text-lg md:text-xl lg:text-2xl;
+  }
 }
 
 /* Medical card style - soft shadows, rounded */
@@ -181,8 +200,17 @@
 }
 
 @keyframes recording-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.7; transform: scale(1.05); }
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.7;
+    transform: scale(1.05);
+  }
 }
 
 /* Privacy badge */
@@ -220,12 +248,19 @@
   height: 0.5rem;
   border-radius: 9999px;
 }
-.status-dot-active { background-color: oklch(0.55 0.15 160); }
+
+.status-dot-active {
+  background-color: oklch(0.55 0.15 160);
+}
+
 .status-dot-recording {
   background-color: oklch(0.55 0.22 25);
   animation: recording-pulse 1.5s ease-in-out infinite;
 }
-.status-dot-secure { background-color: oklch(0.50 0.12 200); }
+
+.status-dot-secure {
+  background-color: oklch(0.50 0.12 200);
+}
 
 /* Smooth transitions */
 @media (prefers-reduced-motion: no-preference) {
