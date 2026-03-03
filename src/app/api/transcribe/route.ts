@@ -88,14 +88,12 @@ export async function POST(request: NextRequest) {
         const arrayBuffer = await response.arrayBuffer();
         audioBuffer = Buffer.from(arrayBuffer);
       } else {
-        // Legacy: local file path
-        const { readFile } = await import("fs/promises");
-        const path = await import("path");
-        const audioPath = path.join(
-          process.cwd(),
-          visit.audioUrl.startsWith("/") ? visit.audioUrl.slice(1) : visit.audioUrl
+        // Legacy: local file path (no longer supported on Vercel)
+        console.error("Attempted to access local file in serverless environment:", visit.audioUrl);
+        return NextResponse.json(
+          { error: "Audio local não disponível neste ambiente. Por favor, grave novamente." },
+          { status: 400 }
         );
-        audioBuffer = await readFile(audioPath);
       }
     }
 

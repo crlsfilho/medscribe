@@ -413,7 +413,7 @@ export default function DashboardPage() {
             {/* Footer Note */}
             <div className="text-center text-xs text-muted-foreground py-4">
                 <p>
-                    O MedScribe auxilia na documentacao clinica. A responsabilidade pelas
+                    O Steto auxilia na documentacao clinica. A responsabilidade pelas
                     decisoes medicas e do profissional.
                 </p>
             </div>

@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
-import { v4 as uuidv4 } from "uuid";
+import { put } from "@vercel/blob";
 
 const prisma = new PrismaClient();
 
@@ -25,17 +23,16 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "Token invalido" }, { status: 401 });
         }
 
-        // Save File
-        const uploadsDir = path.join(process.cwd(), "public/uploads/docs");
-        await mkdir(uploadsDir, { recursive: true });
-
+        // Upload to Vercel Blob
         const ext = file.name.split(".").pop() || "pdf";
-        const filename = `${uuidv4()}.${ext}`;
-        const filepath = path.join(uploadsDir, filename);
+        const filename = `docs/${token}-${Date.now()}.${ext}`;
 
-        const bytes = await file.arrayBuffer();
-        const buffer = Buffer.from(bytes);
-        await writeFile(filepath, buffer);
+        const blob = await put(filename, file, {
+            access: "public",
+            contentType: file.type || "application/pdf",
+        });
+
+        const fileUrl = blob.url;
 
         // Record in DB (ActionableItem? Or new 'PatientUpload' model?)
         // For MVP, let's create an ActionableItem linked to the latest visit?
@@ -58,14 +55,14 @@ export async function POST(request: NextRequest) {
                     status: "completed",
                     metadata: JSON.stringify({
                         filename: file.name,
-                        url: `/uploads/docs/${filename}`,
+                        url: fileUrl,
                         uploadedAt: new Date().toISOString()
                     })
                 }
             });
         }
 
-        return NextResponse.json({ success: true, url: `/uploads/docs/${filename}` });
+        return NextResponse.json({ success: true, url: fileUrl });
 
     } catch (error) {
         console.error("Upload error:", error);

@@ -78,7 +78,7 @@ export default function RegisterPage() {
             Criar Conta
           </h1>
           <p className="text-muted-foreground mt-1">
-            Cadastre-se no MedScribe
+            Cadastre-se no Steto
           </p>
         </div>
 

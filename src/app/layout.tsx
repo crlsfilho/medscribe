@@ -14,7 +14,7 @@ const lora = Lora({
 });
 
 export const metadata: Metadata = {
-  title: "MedScribe - Notas Clínicas com IA",
+  title: "Steto - Notas Clínicas com IA",
   description: "Sistema de transcrição e geração de notas clínicas SOAP com auxílio de Inteligência Artificial",
 };
 

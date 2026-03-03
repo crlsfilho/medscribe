@@ -22,7 +22,7 @@ export default async function LandingPage() {
                         <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center">
                             <Mic className="w-5 h-5 text-white" />
                         </div>
-                        <span className="font-bold text-xl tracking-tight text-gray-900">MedScribe</span>
+                        <span className="font-bold text-xl tracking-tight text-gray-900">Steto</span>
                     </div>
                     <div className="flex items-center gap-4">
                         <Link href="/login" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
@@ -50,7 +50,7 @@ export default async function LandingPage() {
                     Suas notas clínicas, <span className="text-blue-600">automaticamente</span>.
                 </h1>
                 <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto leading-relaxed">
-                    O MedScribe escuta sua consulta e gera o prontuário SOAP, exames e documentos em segundos. Economize até 2 horas por dia.
+                    O Steto escuta sua consulta e gera o prontuário SOAP, exames e documentos em segundos. Economize até 2 horas por dia.
                 </p>
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                     <Link href="/register">
@@ -185,10 +185,10 @@ export default async function LandingPage() {
                         <div className="w-6 h-6 rounded-lg bg-gray-900 flex items-center justify-center">
                             <Mic className="w-3 h-3 text-white" />
                         </div>
-                        <span className="font-bold text-gray-900">MedScribe</span>
+                        <span className="font-bold text-gray-900">Steto</span>
                     </div>
                     <div className="text-sm text-gray-500">
-                        © 2026 MedScribe Inc. Todos os direitos reservados.
+                        © 2026 Steto Inc. Todos os direitos reservados.
                     </div>
                 </div>
             </footer>

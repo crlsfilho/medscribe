@@ -254,7 +254,7 @@ export function generateTissPDF(data: TissFormData): Blob {
   doc.setFontSize(6);
   doc.setTextColor(100);
   doc.text(
-    "Documento gerado automaticamente pelo sistema MedScribe. Conteudo assistido por IA - verificar dados antes do uso.",
+    "Documento gerado automaticamente pelo sistema Steto. Conteudo assistido por IA - verificar dados antes do uso.",
     pageWidth / 2,
     yPos,
     { align: "center" }

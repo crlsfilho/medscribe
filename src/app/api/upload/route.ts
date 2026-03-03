@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
-import { v4 as uuidv4 } from "uuid";
+import { put } from "@vercel/blob";
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -40,22 +38,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = path.join(process.cwd(), "uploads");
-    await mkdir(uploadsDir, { recursive: true });
-
-    // Generate unique filename
+    // Upload to Vercel Blob
     const ext = audioFile.name.split(".").pop() || "webm";
-    const filename = `${uuidv4()}.${ext}`;
-    const filepath = path.join(uploadsDir, filename);
+    const filename = `audio/${visitId}-${Date.now()}.${ext}`;
 
-    // Write file to disk
-    const bytes = await audioFile.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    await writeFile(filepath, buffer);
+    const blob = await put(filename, audioFile, {
+      access: "public",
+      contentType: audioFile.type || "audio/webm",
+    });
 
     // Update visit with audio URL
-    const audioUrl = `/uploads/${filename}`;
+    const audioUrl = blob.url;
     await prisma.visit.update({
       where: { id: visitId },
       data: { audioUrl },

@@ -60,7 +60,7 @@ export default function LoginPage() {
               />
             </svg>
           </div>
-          <h1 className="text-2xl font-semibold text-foreground">MedScribe</h1>
+          <h1 className="text-2xl font-semibold text-foreground">Steto</h1>
           <p className="text-muted-foreground mt-1">
             Documentacao clinica assistida
           </p>

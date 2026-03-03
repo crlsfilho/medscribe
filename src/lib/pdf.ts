@@ -265,7 +265,7 @@ export function generateSOAPPDF(data: ExportData): Blob {
   doc.setFontSize(8);
   doc.setTextColor(128);
   doc.text(
-    "Documento gerado por MedScribe - Conteúdo gerado com auxílio de IA, revise antes de usar.",
+    "Documento gerado por Steto - Conteúdo gerado com auxílio de IA, revise antes de usar.",
     pageWidth / 2,
     y,
     { align: "center" }
@@ -331,7 +331,7 @@ export function generateSOAPText(data: ExportData): string {
   }
 
   text += "\n" + "-".repeat(50) + "\n";
-  text += "Gerado por MedScribe - Conteúdo gerado com IA, revise antes de usar.";
+  text += "Gerado por Steto - Conteúdo gerado com IA, revise antes de usar.";
 
   return text;
 }
@@ -398,7 +398,7 @@ function addPDFFooter(doc: jsPDF, doctorName?: string) {
   // System Footer
   doc.setFontSize(8);
   doc.setTextColor(150);
-  doc.text("Documento gerado digitalmente via MedScribe.", pageWidth / 2, pageHeight - 10, { align: "center" });
+  doc.text("Documento gerado digitalmente via Steto.", pageWidth / 2, pageHeight - 10, { align: "center" });
   doc.setTextColor(0); // Reset
 }
 

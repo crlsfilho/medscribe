@@ -88,7 +88,7 @@ export function LegalDisclaimer({
           {/* Content */}
           <div className="space-y-3 text-sm text-foreground/80">
             <p>
-              O <strong>MedScribe</strong> e uma ferramenta de auxilio a
+              O <strong>Steto</strong> e uma ferramenta de auxilio a
               documentacao clinica que utiliza inteligencia artificial.
             </p>
 
@@ -190,7 +190,7 @@ export function LegalDisclaimer({
 
           <div className="flex items-center justify-between pt-2 border-t border-border">
             <p className="text-xs text-muted-foreground">
-              MedScribe v1.0 - Ferramenta de auxilio a documentacao clinica
+              Steto v1.0 - Ferramenta de auxilio a documentacao clinica
             </p>
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <button className="hover:text-foreground transition-colors">
