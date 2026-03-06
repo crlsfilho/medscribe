@@ -59,19 +59,26 @@ export function DocumentGenerator({ soap, patientName }: DocumentGeneratorProps)
         }
     };
 
+    const sanitizeText = (text: string) => {
+        const div = document.createElement("div");
+        div.textContent = text;
+        return div.innerHTML;
+    };
+
     const handlePrint = () => {
-        // Mock Print - user would actually implement PDF generation here
-        // For MVP we just open a window print or toast
         const printWindow = window.open('', '', 'width=800,height=600');
+        const safeTitle = sanitizeText(generatedDoc?.title || "");
+        const safePatient = sanitizeText(patientName);
+        const safeContent = sanitizeText(generatedDoc?.content || "");
         printWindow?.document.write(`
         <html>
-          <head><title>${generatedDoc?.title}</title></head>
+          <head><title>${safeTitle}</title></head>
           <body style="font-family: sans-serif; padding: 40px;">
             <div style="text-align: center; margin-bottom: 40px;">
-                <h1>${generatedDoc?.title}</h1>
-                <p>Paciente: ${patientName}</p>
+                <h1>${safeTitle}</h1>
+                <p>Paciente: ${safePatient}</p>
             </div>
-            <div style="white-space: pre-wrap; font-size: 14pt;">${generatedDoc?.content}</div>
+            <div style="white-space: pre-wrap; font-size: 14pt;">${safeContent}</div>
             <div style="margin-top: 60px; text-align: center; border-top: 1px solid #000; width: 200px; margin-left: auto; margin-right: auto;">
                 <p style="margin-top: 5px;">Assinatura do Médico</p>
             </div>

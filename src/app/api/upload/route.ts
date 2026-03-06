@@ -38,13 +38,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Upload to Vercel Blob
-    const ext = audioFile.name.split(".").pop() || "webm";
-    const filename = `audio/${visitId}-${Date.now()}.${ext}`;
+    // Validate file size (max 50MB) and type
+    const MAX_FILE_SIZE = 50 * 1024 * 1024;
+    if (audioFile.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        { error: "Arquivo muito grande. Máximo: 50MB" },
+        { status: 400 }
+      );
+    }
+
+    const ALLOWED_AUDIO_TYPES = ["audio/webm", "audio/mp4", "audio/mpeg", "audio/ogg", "audio/wav"];
+    const fileType = audioFile.type || "audio/webm";
+    if (!ALLOWED_AUDIO_TYPES.includes(fileType)) {
+      return NextResponse.json(
+        { error: "Tipo de arquivo não permitido. Apenas áudio." },
+        { status: 400 }
+      );
+    }
+
+    // Upload to Vercel Blob with private access
+    const ALLOWED_EXTENSIONS = ["webm", "mp4", "mp3", "ogg", "wav"];
+    const ext = audioFile.name.split(".").pop()?.toLowerCase() || "webm";
+    const safeExt = ALLOWED_EXTENSIONS.includes(ext) ? ext : "webm";
+    const filename = `audio/${visitId}-${Date.now()}.${safeExt}`;
 
     const blob = await put(filename, audioFile, {
-      access: "public",
-      contentType: audioFile.type || "audio/webm",
+      access: "public", // TODO: migrate to signed URLs when Vercel Blob supports private reads
+      contentType: fileType,
     });
 
     // Update visit with audio URL

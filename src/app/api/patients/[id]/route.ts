@@ -47,15 +47,19 @@ export async function GET(
         );
     }
 
-    // Auto-generate token if missing on read? 
-    // Ideally we do this on write, but for immediate fix on read is safer for UX.
-    if (!patient.shareToken) {
+    // Auto-generate token if missing or expired
+    const TOKEN_EXPIRY_DAYS = 30;
+    const isExpired = patient.shareTokenExpiresAt && new Date(patient.shareTokenExpiresAt) < new Date();
+    if (!patient.shareToken || isExpired) {
         const token = uuidv4();
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + TOKEN_EXPIRY_DAYS);
         await prisma.patient.update({
             where: { id: patient.id },
-            data: { shareToken: token }
+            data: { shareToken: token, shareTokenExpiresAt: expiresAt }
         });
         patient.shareToken = token;
+        patient.shareTokenExpiresAt = expiresAt;
     }
 
     return NextResponse.json(patient);
@@ -91,14 +95,22 @@ export async function PATCH(
             );
         }
 
-        // Ensure token exists on update
-        const shareToken = existingPatient.shareToken || uuidv4();
+        // Ensure token exists on update (with 30-day expiration)
+        const TOKEN_EXPIRY_DAYS = 30;
+        let shareToken = existingPatient.shareToken;
+        let shareTokenExpiresAt = existingPatient.shareTokenExpiresAt;
+        if (!shareToken || (shareTokenExpiresAt && new Date(shareTokenExpiresAt) < new Date())) {
+            shareToken = uuidv4();
+            shareTokenExpiresAt = new Date();
+            shareTokenExpiresAt.setDate(shareTokenExpiresAt.getDate() + TOKEN_EXPIRY_DAYS);
+        }
 
         const patient = await prisma.patient.update({
             where: { id },
             data: {
                 ...data,
-                shareToken // Upsert token
+                shareToken,
+                shareTokenExpiresAt,
             },
         });
 

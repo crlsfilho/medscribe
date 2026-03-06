@@ -353,29 +353,36 @@ export default function ConsultaPage() {
       />
 
       {/* Top Header Bar */}
-      <header className="px-6 py-3 border-b border-border/50 bg-card/50 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-4">
-          <button onClick={() => router.back()} className="p-2 hover:bg-muted rounded-full text-muted-foreground transition-colors">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <header className="px-4 sm:px-6 py-3 border-b border-border/50 bg-card/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 shrink-0">
+        <div className="flex items-center gap-3 w-full sm:w-auto overflow-hidden">
+          <button onClick={() => router.back()} className="p-1.5 sm:p-2 -ml-1 sm:-ml-2 hover:bg-muted shrink-0 rounded-full text-muted-foreground transition-colors">
+            <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
             </svg>
           </button>
-          <div>
-            <h1 className="font-semibold text-lg">{visit.patient.name}</h1>
-            <p className="text-xs text-muted-foreground">{visit.patient.sex} • {visit.patient.age} anos • {formatDate(visit.createdAt)}</p>
+          <div className="min-w-0 flex-1">
+            <h1 className="font-semibold text-base sm:text-lg truncate">{visit.patient.name}</h1>
+            <p className="text-[11px] sm:text-xs text-muted-foreground truncate">{visit.patient.sex} • {visit.patient.age} anos • {formatDate(visit.createdAt)}</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setShowDocModal(true)} className="gap-2 text-indigo-600 border-indigo-200 hover:bg-indigo-50">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-            Emitir Documento
+        <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 no-scrollbar">
+          <Button variant="outline" size="sm" onClick={() => setShowDocModal(true)} className="gap-1.5 sm:gap-2 text-indigo-600 border-indigo-200 hover:bg-indigo-50 shrink-0 h-8 sm:h-9 px-2 sm:px-3">
+            <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+            <span className="hidden sm:inline">Emitir Documento</span>
+            <span className="inline sm:hidden text-xs">Documento</span>
           </Button>
-          <Button variant="ghost" size="sm" onClick={handleExportPDF} disabled={!hasSOAP}>
-            Extortar Prontuário
+          <Button variant="ghost" size="sm" onClick={handleExportPDF} disabled={!hasSOAP} className="shrink-0 h-8 sm:h-9 px-2 sm:px-3">
+            <span className="hidden sm:inline">Exportar Prontuário</span>
+            <span className="inline sm:hidden text-xs">Exportar</span>
           </Button>
-          <Button onClick={handleSave} disabled={saving} size="sm" className="gap-2">
-            {saving ? "Salvando..." : "Salvar Prontuário"}
+          <Button onClick={handleSave} disabled={saving} size="sm" className="gap-2 shrink-0 h-8 sm:h-9 px-3 sm:px-4">
+            {saving ? "Salvando..." : (
+              <>
+                <span className="hidden sm:inline">Salvar Prontuário</span>
+                <span className="inline sm:hidden text-xs">Salvar</span>
+              </>
+            )}
           </Button>
         </div>
       </header>

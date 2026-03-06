@@ -28,6 +28,7 @@ model Patient {
   sex       String?
   phoneNumber String? // WhatsApp
   shareToken String? @unique // Token fixo do paciente (Portal)
+  shareTokenExpiresAt DateTime? // Expiracao do token do portal
   createdAt DateTime @default(now())
   visits    Visit[]
   appointments Appointment[]

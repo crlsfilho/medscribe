@@ -2,13 +2,24 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { generatePrescriptionPDF, generateExamPDF, generateCertificatePDF } from "@/lib/pdf";
 import { toast } from "sonner";
+import { SignatureHelp } from "./signature-help";
+import { ShieldCheck, HelpCircle, Laptop, Smartphone } from "lucide-react";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { SignatureProvider } from "@/lib/signature";
+import { useSession } from "next-auth/react";
 
 interface DocumentModalProps {
     open: boolean;
@@ -18,9 +29,12 @@ interface DocumentModalProps {
 }
 
 export function DocumentModal({ open, onOpenChange, soap, patient }: DocumentModalProps) {
+    const { data: session } = useSession();
     const [activeTab, setActiveTab] = useState("prescription");
     const [loading, setLoading] = useState(false);
+    const [isSigning, setIsSigning] = useState(false);
     const [instruction, setInstruction] = useState("");
+    const [showHelp, setShowHelp] = useState(false);
 
     // States for structured data
     const [medications, setMedications] = useState<any[]>([]);
@@ -30,6 +44,43 @@ export function DocumentModal({ open, onOpenChange, soap, patient }: DocumentMod
     const [generated, setGenerated] = useState(false);
 
     // --- ACTIONS ---
+
+    const getDocumentBlob = (): { blob: Blob | null, fileName: string } => {
+        const commonData = {
+            patient: { name: patient.name },
+            date: new Date().toLocaleDateString("pt-BR"),
+            doctorName: session?.user?.name || "Dr. MedScribe"
+        };
+
+        let blob: Blob | null = null;
+        let fileName = "documento.pdf";
+
+        if (activeTab === "prescription") {
+            if (medications.length === 0) return { blob: null, fileName };
+            blob = generatePrescriptionPDF({
+                ...commonData,
+                medications: medications.map(m => ({ name: m.name, instructions: m.instructions }))
+            });
+            fileName = `receita-${patient.name}.pdf`;
+        } else if (activeTab === "exam") {
+            if (exams.length === 0) return { blob: null, fileName };
+            const examStrings = exams.map(e => e.tuss_code ? `${e.name} (TUSS: ${e.tuss_code})` : e.name);
+            blob = generateExamPDF({
+                ...commonData,
+                exams: examStrings
+            });
+            fileName = `pedido-exames-${patient.name}.pdf`;
+        } else if (activeTab === "certificate") {
+            blob = generateCertificatePDF({
+                ...commonData,
+                days: certificate.days,
+                cid: certificate.cid,
+                full_text: certificate.full_text
+            });
+            fileName = `atestado-${patient.name}.pdf`;
+        }
+        return { blob, fileName };
+    };
 
     const handleGenerateDraft = async () => {
         setLoading(true);
@@ -70,46 +121,7 @@ export function DocumentModal({ open, onOpenChange, soap, patient }: DocumentMod
     };
 
     const handlePrint = () => {
-        const commonData = {
-            patient: { name: patient.name },
-            date: new Date().toLocaleDateString("pt-BR"),
-            doctorName: "Dr. Carlos Filho" // Placeholder, in real app comes from session
-        };
-
-        let blob: Blob | null = null;
-        let fileName = "documento.pdf";
-
-        if (activeTab === "prescription") {
-            if (medications.length === 0) {
-                toast.error("Adicione pelo menos um medicamento");
-                return;
-            }
-            blob = generatePrescriptionPDF({
-                ...commonData,
-                medications: medications.map(m => ({ name: m.name, instructions: m.instructions }))
-            });
-            fileName = `receita-${patient.name}.pdf`;
-        } else if (activeTab === "exam") {
-            if (exams.length === 0) {
-                toast.error("Adicione pelo menos um exame");
-                return;
-            }
-            // Pass simple strings to PDF generator for now, but formatted with code if present
-            const examStrings = exams.map(e => e.tuss_code ? `${e.name} (TUSS: ${e.tuss_code})` : e.name);
-            blob = generateExamPDF({
-                ...commonData,
-                exams: examStrings
-            });
-            fileName = `pedido-exames-${patient.name}.pdf`;
-        } else if (activeTab === "certificate") {
-            blob = generateCertificatePDF({
-                ...commonData,
-                days: certificate.days,
-                cid: certificate.cid,
-                full_text: certificate.full_text
-            });
-            fileName = `atestado-${patient.name}.pdf`;
-        }
+        const { blob, fileName } = getDocumentBlob();
 
         if (blob) {
             const url = URL.createObjectURL(blob);
@@ -120,6 +132,40 @@ export function DocumentModal({ open, onOpenChange, soap, patient }: DocumentMod
             URL.revokeObjectURL(url);
             toast.success("PDF gerado com sucesso!");
             onOpenChange(false);
+        } else {
+            toast.error("Erro ao gerar PDF. Verifique os campos.");
+        }
+    };
+
+    const handleDigitalSignature = async (provider: SignatureProvider) => {
+        const { blob, fileName } = getDocumentBlob();
+        if (!blob) {
+            toast.error("Gere o rascunho primeiro");
+            return;
+        }
+
+        setIsSigning(true);
+        try {
+            const formData = new FormData();
+            formData.append("pdf", blob, fileName);
+            formData.append("provider", provider);
+
+            const res = await fetch("/api/signature/initialize", {
+                method: "POST",
+                body: formData
+            });
+
+            if (!res.ok) throw new Error("Erro ao iniciar assinatura");
+
+            const { authUrl } = await res.json();
+
+            // Redirect to signature provider
+            // In a real app, we might use a popup or redirect
+            window.location.href = authUrl;
+        } catch (err) {
+            toast.error("Falha ao iniciar processo de assinatura.");
+        } finally {
+            setIsSigning(false);
         }
     };
 
@@ -278,12 +324,61 @@ export function DocumentModal({ open, onOpenChange, soap, patient }: DocumentMod
                     </div>
                 </Tabs>
 
-                <DialogFooter className="mt-4">
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-                    <Button onClick={handlePrint} disabled={!generated} className="gap-2">
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
-                        Imprimir PDF
-                    </Button>
+                <DialogFooter className="mt-4 flex-col sm:flex-row gap-2">
+                    <div className="flex-1 flex items-center">
+                        <Dialog open={showHelp} onOpenChange={setShowHelp}>
+                            <DialogTrigger asChild>
+                                <Button variant="link" size="sm" className="text-muted-foreground gap-1 p-0 h-auto">
+                                    <HelpCircle className="w-3 h-3" />
+                                    Dúvidas sobre assinatura?
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="w-[350px]">
+                                <DialogHeader>
+                                    <DialogTitle>Ajuda com Assinatura</DialogTitle>
+                                </DialogHeader>
+                                <div className="max-h-[400px] overflow-y-auto">
+                                    <SignatureHelp />
+                                </div>
+                            </DialogContent>
+                        </Dialog>
+                    </div>
+                    <div className="flex gap-2">
+                        <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button disabled={!generated || isSigning} className="gap-2 bg-indigo-600 hover:bg-indigo-700">
+                                    <ShieldCheck className="w-4 h-4" />
+                                    {isSigning ? "Iniciando..." : "Assinar Digitalmente"}
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-56">
+                                <DropdownMenuItem onClick={() => handleDigitalSignature("cfm_vidaas")} className="gap-2 py-3">
+                                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                        <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" /></svg>
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="font-medium text-xs">CFM (Vidaas)</span>
+                                        <span className="text-[10px] text-muted-foreground">Assinar via Nuvem/Celular</span>
+                                    </div>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => handleDigitalSignature("certillion")} className="gap-2 py-3">
+                                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                                        <Laptop className="w-4 h-4 text-blue-600" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="font-medium text-xs">Certificado Privado</span>
+                                        <span className="text-[10px] text-muted-foreground">A1/A3 via Certillion</span>
+                                    </div>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                        <Button variant="outline" onClick={handlePrint} disabled={!generated} className="gap-2 text-muted-foreground">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                            Só Imprimir (Sem Valor Jurídico)
+                        </Button>
+                    </div>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

@@ -1,14 +1,20 @@
 import { PrismaClient } from "@prisma/client";
 import { NextResponse } from "next/server";
+import { rateLimit } from "@/lib/rate-limit";
 
 const prisma = new PrismaClient();
 
 export async function POST(request: Request) {
+    // Rate limit: 10 requests per minute per IP
+    const ip = request.headers.get("x-forwarded-for") || "unknown";
+    const { success } = rateLimit(`preconsult-post:${ip}`, 10, 60_000);
+    if (!success) {
+        return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
+    }
+
     try {
         const body = await request.json();
         const { token, ...data } = body;
-
-        console.log("Receiving pre-consult data for token:", token);
 
         // Find appointment by token
         // Since we decided to put shareToken on Appointment or Visit, let's verify schema.
@@ -53,6 +59,13 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
+    // Rate limit: 20 requests per minute per IP
+    const ip = request.headers.get("x-forwarded-for") || "unknown";
+    const { success } = rateLimit(`preconsult-get:${ip}`, 20, 60_000);
+    if (!success) {
+        return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
+    }
+
     const { searchParams } = new URL(request.url);
     const token = searchParams.get("token");
 

@@ -59,27 +59,27 @@ function CollapsibleSection({
     <div className="border border-border rounded-xl overflow-hidden">
       <button
         onClick={onToggle}
-        className="w-full flex items-center justify-between p-4 bg-card hover:bg-muted/30 transition-colors"
+        className="w-full flex items-center justify-between p-3 sm:p-4 bg-card hover:bg-muted/30 transition-colors text-left"
       >
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+        <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 pr-2">
+          <div className="shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
             {icon}
           </div>
-          <span className="font-medium text-foreground">{title}</span>
+          <span className="font-medium text-sm sm:text-base text-foreground truncate">{title}</span>
           {badge && (
             <span
-              className={`px-2 py-0.5 rounded-full text-xs font-medium ${badgeColor}`}
+              className={`hidden sm:inline-block px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium shrink-0 ${badgeColor}`}
             >
               {badge}
             </span>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+          <span className="hidden sm:inline text-xs text-muted-foreground whitespace-nowrap">
             Organizado por IA
           </span>
           <svg
-            className={`w-5 h-5 text-muted-foreground transition-transform ${isOpen ? "rotate-180" : ""}`}
+            className={`w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground transition-transform ${isOpen ? "rotate-180" : ""}`}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -93,7 +93,19 @@ function CollapsibleSection({
           </svg>
         </div>
       </button>
-      {isOpen && <div className="p-4 bg-card border-t border-border">{children}</div>}
+      {/* Show badge on mobile below title if open, or omit. For simplicity, just hidden on very small. */}
+      {isOpen && (
+        <div className="p-3 sm:p-4 bg-card border-t border-border flex flex-col gap-4">
+          {badge && (
+            <div className="sm:hidden mb-2">
+              <span className={`inline-block px-2 py-1 rounded-full text-[10px] font-medium ${badgeColor}`}>
+                {badge}
+              </span>
+            </div>
+          )}
+          {children}
+        </div>
+      )}
     </div>
   );
 }

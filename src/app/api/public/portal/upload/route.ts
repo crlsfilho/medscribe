@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { put } from "@vercel/blob";
+import { rateLimit } from "@/lib/rate-limit";
 
 const prisma = new PrismaClient();
 
 export async function POST(request: NextRequest) {
+    // Rate limit: 5 uploads per minute per IP
+    const ip = request.headers.get("x-forwarded-for") || "unknown";
+    const { success } = rateLimit(`portal-upload:${ip}`, 5, 60_000);
+    if (!success) {
+        return NextResponse.json({ error: "Muitas requisições. Tente novamente em breve." }, { status: 429 });
+    }
+
     try {
         const formData = await request.formData();
         const file = formData.get("file") as File | null;
@@ -12,6 +20,29 @@ export async function POST(request: NextRequest) {
 
         if (!file || !token) {
             return NextResponse.json({ error: "Arquivo e token obrigatorios" }, { status: 400 });
+        }
+
+        // Validate file size (max 10MB for documents)
+        const MAX_FILE_SIZE = 10 * 1024 * 1024;
+        if (file.size > MAX_FILE_SIZE) {
+            return NextResponse.json(
+                { error: "Arquivo muito grande. Máximo: 10MB" },
+                { status: 400 }
+            );
+        }
+
+        // Validate file type
+        const ALLOWED_DOC_TYPES = [
+            "application/pdf",
+            "image/jpeg",
+            "image/png",
+            "image/webp",
+        ];
+        if (!ALLOWED_DOC_TYPES.includes(file.type)) {
+            return NextResponse.json(
+                { error: "Tipo de arquivo não permitido. Apenas PDF e imagens." },
+                { status: 400 }
+            );
         }
 
         // Validate Token
@@ -24,11 +55,13 @@ export async function POST(request: NextRequest) {
         }
 
         // Upload to Vercel Blob
-        const ext = file.name.split(".").pop() || "pdf";
-        const filename = `docs/${token}-${Date.now()}.${ext}`;
+        const ALLOWED_EXTENSIONS = ["pdf", "jpg", "jpeg", "png", "webp"];
+        const ext = file.name.split(".").pop()?.toLowerCase() || "pdf";
+        const safeExt = ALLOWED_EXTENSIONS.includes(ext) ? ext : "pdf";
+        const filename = `docs/${patient.id}-${Date.now()}.${safeExt}`;
 
         const blob = await put(filename, file, {
-            access: "public",
+            access: "public", // TODO: migrate to signed URLs when Vercel Blob supports private reads
             contentType: file.type || "application/pdf",
         });
 

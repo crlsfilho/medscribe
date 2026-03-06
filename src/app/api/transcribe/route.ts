@@ -36,19 +36,25 @@ export async function POST(request: NextRequest) {
       const bytes = await file.arrayBuffer();
       audioBuffer = Buffer.from(bytes);
 
+      // Validate audio size (max 50MB)
+      const MAX_FILE_SIZE = 50 * 1024 * 1024;
+      if (audioBuffer.length > MAX_FILE_SIZE) {
+        return NextResponse.json(
+          { error: "Arquivo muito grande. Máximo: 50MB" },
+          { status: 400 }
+        );
+      }
+
       // Upload to Vercel Blob for persistent storage
       let audioUrl = "processed-in-memory";
 
       if (process.env.BLOB_READ_WRITE_TOKEN) {
         const filename = `audio/${visitId}-${Date.now()}.webm`;
         const blob = await put(filename, audioBuffer, {
-          access: "public",
+          access: "public", // TODO: migrate to signed URLs when Vercel Blob supports private reads
           contentType: "audio/webm",
         });
         audioUrl = blob.url;
-        console.log("Audio uploaded to Vercel Blob:", audioUrl);
-      } else {
-        console.log("No BLOB_READ_WRITE_TOKEN, audio will not be persisted");
       }
 
       // Update visit with audio URL
