@@ -213,7 +213,7 @@ export async function diarizeWithDeepgram(
       Authorization: `Token ${DEEPGRAM_API_KEY}`,
       "Content-Type": "audio/webm",
     },
-    body: audioBuffer,
+    body: audioBuffer as unknown as BodyInit,
   });
 
   const data = await response.json();
