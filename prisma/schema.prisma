@@ -12,6 +12,14 @@ model User {
   email        String        @unique
   passwordHash String
   name         String?
+  cpf          String?       @unique // CPF do médico (para assinatura digital)
+  crm          String?       // CRM do médico (Conselho Regional de Medicina)
+  crmUf        String?       // UF do CRM (ex: "SP", "RJ")
+  specialty    String?       // Especialidade médica
+  phoneNumber  String?       // WhatsApp/Telefone
+  clinicName   String?       // Nome da clínica
+  vidaasActive Boolean       @default(false) // Se tem VIDaaS ativo
+  onboardingComplete Boolean @default(false) // Se completou onboarding
   createdAt    DateTime      @default(now())
   patients     Patient[]
   visits       Visit[]

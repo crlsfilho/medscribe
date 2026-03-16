@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { put } from "@vercel/blob";
 import OpenAI from "openai";
+import { diarizeHybrid } from "@/lib/speaker-diarization";
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -117,11 +118,20 @@ export async function POST(request: NextRequest) {
 
     const formattedText = transcription;
 
+    // --- Speaker Diarization (Identifica Médico vs Paciente) ---
+    console.log("Diarizing speakers...");
+    const diarization = await diarizeHybrid(formattedText, {
+      useLLMIfLowConfidence: true,
+      confidenceThreshold: 0.6,
+    });
+
     if (saveToDb) {
-      // Update Visit with transcription
+      // Update Visit with transcription AND diarized text
       await prisma.visit.update({
         where: { id: visitId },
-        data: { transcriptText: formattedText },
+        data: {
+          transcriptText: diarization.formatted, // Salva com labels [MÉDICO]/[PACIENTE]
+        },
       });
 
       // Audit Log
@@ -130,14 +140,16 @@ export async function POST(request: NextRequest) {
           userId: session.user.id,
           visitId,
           action: "transcribed",
-          details: "Transcrição gerada via Whisper API",
+          details: `Transcrição gerada via Whisper API com diarização (${diarization.summary.doctorTurns} turnos médico, ${diarization.summary.patientTurns} turnos paciente)`,
         },
       });
     }
 
     return NextResponse.json({
-      text: formattedText,
-      segments: [],
+      text: formattedText, // Raw transcript
+      diarizedText: diarization.formatted, // Texto com labels
+      segments: diarization.segments, // Array de segmentos com speaker
+      summary: diarization.summary, // Estatísticas
     });
 
   } catch (error: unknown) {
