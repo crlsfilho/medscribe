@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { retryGenerateSOAP } from "@/lib/llm";
+import { retryGenerateSOAP, diarizeTranscription } from "@/lib/llm";
 import { normalizeTerms } from "@/lib/normalize";
 
 export async function POST(request: NextRequest) {
@@ -44,8 +44,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate SOAP note
-    const soapData = await retryGenerateSOAP(visit.transcriptText);
+    // Phase 2: Format the text with Diarization (Medico vs Paciente)
+    let finalTranscriptText = visit.transcriptText;
+    
+    try {
+      const diarized = await diarizeTranscription(visit.transcriptText);
+      // Rebuild the transcript into a formatted script
+      if (diarized.segments && diarized.segments.length > 0) {
+        const scriptLines = diarized.segments.map(
+          (seg) => `[${seg.speaker.toUpperCase()}]: ${seg.text}`
+        );
+        finalTranscriptText = scriptLines.join("\n\n");
+      }
+    } catch (diarizeError) {
+      console.error("Diarization failed, falling back to raw text:", diarizeError);
+    }
+
+    // Generate SOAP note using the properly formatted script
+    const soapData = await retryGenerateSOAP(finalTranscriptText);
 
     // Normalize mentions (CID-10 and DCB)
     const suggestions = await normalizeTerms(soapData.mentions, visitId);
@@ -74,7 +90,8 @@ export async function POST(request: NextRequest) {
 
     await prisma.visit.update({
       where: { id: visitId },
-      data: { soapJson, soapText },
+      // Save both the SOAP and the new beautifully formatted transcript script
+      data: { soapJson, soapText, transcriptText: finalTranscriptText },
     });
 
     // Create audit log

@@ -8,10 +8,12 @@ interface SegmentedAudioRecorderProps {
     onAudioSegment: (blob: Blob, index: number) => Promise<string | undefined>;
     onComplete: () => void;
     disabled?: boolean;
+    recordingMode?: "presencial" | "telemedicina";
 }
 
-export function SegmentedAudioRecorder({ onAudioSegment, onComplete, disabled }: SegmentedAudioRecorderProps) {
+export function SegmentedAudioRecorder({ onAudioSegment, onComplete, disabled, recordingMode = "presencial" }: SegmentedAudioRecorderProps) {
     const [isRecording, setIsRecording] = useState(false);
+    const [isPaused, setIsPaused] = useState(false);
     const [duration, setDuration] = useState(0);
     const [chunkIndex, setChunkIndex] = useState(0);
     const [currentPulse, setCurrentPulse] = useState<string | null>(null);
@@ -59,10 +61,37 @@ export function SegmentedAudioRecorder({ onAudioSegment, onComplete, disabled }:
         }
 
         setIsRecording(false);
+        setIsPaused(false);
         // We do NOT call onComplete here immediately because the last chunk might still be uploading.
         // We wait a tick or let the user click "Finish" which called this.
         onComplete();
     }, [onComplete]);
+
+    const pauseRecording = useCallback(() => {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+            mediaRecorderRef.current.pause();
+            if (timerRef.current) clearInterval(timerRef.current);
+            if (rotationTimerRef.current) clearTimeout(rotationTimerRef.current);
+            setIsPaused(true);
+        }
+    }, []);
+
+    const resumeRecording = useCallback(() => {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === "paused") {
+            mediaRecorderRef.current.resume();
+            
+            // Resume timers
+            timerRef.current = setInterval(() => {
+                setDuration(prev => prev + 1);
+            }, 1000);
+
+            rotationTimerRef.current = setTimeout(() => {
+                startNewSegment();
+            }, SEGMENT_MS);
+
+            setIsPaused(false);
+        }
+    }, [SEGMENT_MS]);
 
     const startNewSegment = useCallback(() => {
         if (!streamRef.current) return;
@@ -118,7 +147,8 @@ export function SegmentedAudioRecorder({ onAudioSegment, onComplete, disabled }:
 
     const startRecording = async () => {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({
+            // Setup Microphone
+            const micStream = await navigator.mediaDevices.getUserMedia({
                 audio: {
                     echoCancellation: true,
                     noiseSuppression: true,
@@ -126,8 +156,61 @@ export function SegmentedAudioRecorder({ onAudioSegment, onComplete, disabled }:
                 }
             });
 
-            streamRef.current = stream;
+            let finalStream = micStream;
+
+            // Setup Browser Audio (Telemedicine mix)
+            if (recordingMode === "telemedicina") {
+                try {
+                    // Try to get screen capture (focusing on audio)
+                    const displayStream = await navigator.mediaDevices.getDisplayMedia({
+                        video: true, // required by some browsers to capture display audio
+                        audio: true
+                    });
+
+                    // Check if the user really shared audio
+                    const hasAudio = displayStream.getAudioTracks().length > 0;
+                    
+                    if (hasAudio) {
+                        // Web Audio API magic to mix both streams
+                        const audioContext = new window.AudioContext();
+                        const dest = audioContext.createMediaStreamDestination();
+
+                        // Create sources
+                        const micSource = audioContext.createMediaStreamSource(micStream);
+                        const displaySource = audioContext.createMediaStreamSource(displayStream);
+
+                        // Connect sources to destination mixed stream
+                        micSource.connect(dest);
+                        displaySource.connect(dest);
+
+                        // Extract video track from display stream (only used for keeping the capture alive, not for recording)
+                        const videoTrack = displayStream.getVideoTracks()[0];
+                        
+                        // Create the final mixed stream: Audio from destination + Video from display
+                        finalStream = new MediaStream([
+                            ...dest.stream.getAudioTracks(),
+                            videoTrack // we keep it to prevent the browser from ending the screen share prematurely
+                        ]);
+
+                        // Handle when the user manually clicks "Stop sharing" on the browser banner
+                        videoTrack.onended = () => {
+                            toast.warning("Compartilhamento de tela interrompido. A gravação parou.");
+                            stopRecording();
+                        };
+                    } else {
+                        // User shared screen but didn't check the "Share Audio" box
+                        toast.error("Você não selecionou 'Compartilhar Áudio'. Voltando para gravação apenas de microfone.");
+                        displayStream.getTracks().forEach(track => track.stop());
+                    }
+                } catch (dispErr) {
+                    console.error("Error capturing display media:", dispErr);
+                    toast.error("Não foi possível capturar o áudio da guia. Gravando apenas microfone.");
+                }
+            }
+
+            streamRef.current = finalStream;
             setIsRecording(true);
+            setIsPaused(false);
             setDuration(0);
 
             chunkIndexRef.current = 0;
@@ -162,29 +245,62 @@ export function SegmentedAudioRecorder({ onAudioSegment, onComplete, disabled }:
     return (
         <div className="flex flex-col items-center gap-4 p-8 border-2 border-dashed rounded-xl bg-card">
             {isRecording ? (
-                <div className="flex flex-col items-center gap-4">
+                <div className="flex flex-col items-center gap-6 w-full max-w-sm">
+                    {/* Glowing Mic Visual */}
                     <div className="relative w-24 h-24 flex items-center justify-center">
-                        <span className="absolute w-full h-full rounded-full bg-red-100 animate-ping opacity-75"></span>
-                        <div className="relative w-20 h-20 bg-red-500 rounded-full flex items-center justify-center shadow-lg">
-                            <span className="text-white font-bold text-xs">{chunkIndex}</span>
+                        {!isPaused && <span className="absolute w-full h-full rounded-full bg-red-100 animate-ping opacity-75"></span>}
+                        <div className={`relative w-20 h-20 ${isPaused ? 'bg-muted-foreground' : 'bg-red-500'} rounded-full flex items-center justify-center shadow-lg transition-colors duration-300`}>
+                            <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                {isPaused ? (
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.25 9v6m-4.5 0V9M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                ) : (
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+                                )}
+                            </svg>
                         </div>
                     </div>
+                    
+                    {/* Timer and Status */}
                     <div className="text-center">
-                        <h3 className="text-2xl font-mono font-bold text-foreground tabular-nums">
+                        <h3 className="text-3xl font-mono font-bold text-foreground tabular-nums tracking-wider">
                             {formatTime(duration)}
                         </h3>
-                        <p className="text-xs text-muted-foreground mt-1">
-                            Gravando... (Segmento atual: {chunkIndex + 1})
+                        <p className={`text-sm mt-2 font-medium ${isPaused ? 'text-muted-foreground' : 'text-red-500 animate-pulse'}`}>
+                            {isPaused ? 'Gravação Pausada' : 'Gravando consulta...'}
                         </p>
                     </div>
-                    <Button
-                        variant="destructive"
-                        size="lg"
-                        className="w-full min-w-[200px] rounded-full mt-2"
-                        onClick={stopRecording}
-                    >
-                        Parar e Finalizar
-                    </Button>
+
+                    {/* Controls */}
+                    <div className="flex gap-3 w-full mt-4">
+                        <Button
+                            variant="outline"
+                            size="lg"
+                            className="flex-1 rounded-xl h-14"
+                            onClick={isPaused ? resumeRecording : pauseRecording}
+                        >
+                            {isPaused ? (
+                                <>
+                                    <span className="w-3 h-3 rounded-full bg-red-500 mr-2 animate-pulse" />
+                                    Retomar
+                                </>
+                            ) : (
+                                <>
+                                    <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5" />
+                                    </svg>
+                                    Pausar
+                                </>
+                            )}
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            size="lg"
+                            className="flex-1 rounded-xl h-14"
+                            onClick={stopRecording}
+                        >
+                            Finalizar
+                        </Button>
+                    </div>
                     
                     {/* Live Pulse Insights */}
                     <div className={`mt-4 w-full text-center transition-all duration-500 ease-in-out ${currentPulse ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 h-0 overflow-hidden"}`}>
