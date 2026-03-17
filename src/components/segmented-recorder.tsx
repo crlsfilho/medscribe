@@ -168,43 +168,61 @@ export function SegmentedAudioRecorder({ onAudioSegment, onComplete, disabled, r
                     });
 
                     // Check if the user really shared audio
-                    const hasAudio = displayStream.getAudioTracks().length > 0;
+                    const audioTracks = displayStream.getAudioTracks();
                     
-                    if (hasAudio) {
-                        // Web Audio API magic to mix both streams
-                        const audioContext = new window.AudioContext();
-                        const dest = audioContext.createMediaStreamDestination();
+                    if (audioTracks.length > 0) {
+                        try {
+                            // Web Audio API magic to mix both streams
+                            const audioContext = new window.AudioContext();
+                            const dest = audioContext.createMediaStreamDestination();
 
-                        // Create sources
-                        const micSource = audioContext.createMediaStreamSource(micStream);
-                        const displaySource = audioContext.createMediaStreamSource(displayStream);
+                            // Create sources
+                            const micSource = audioContext.createMediaStreamSource(micStream);
+                            const displaySource = audioContext.createMediaStreamSource(displayStream);
 
-                        // Connect sources to destination mixed stream
-                        micSource.connect(dest);
-                        displaySource.connect(dest);
+                            // Connect sources to destination mixed stream
+                            micSource.connect(dest);
+                            displaySource.connect(dest);
 
-                        // Extract video track from display stream (only used for keeping the capture alive, not for recording)
-                        const videoTrack = displayStream.getVideoTracks()[0];
-                        
-                        // Create the final mixed stream: Audio from destination + Video from display
-                        finalStream = new MediaStream([
-                            ...dest.stream.getAudioTracks(),
-                            videoTrack // we keep it to prevent the browser from ending the screen share prematurely
-                        ]);
+                            // Extract video track from display stream (only used for keeping the capture alive, not for recording)
+                            const videoTrack = displayStream.getVideoTracks()[0];
+                            
+                            // Create the final mixed stream: Audio from destination
+                            const mixedAudioTracks = dest.stream.getAudioTracks();
+                            
+                            finalStream = new MediaStream([
+                                ...mixedAudioTracks,
+                                ...(videoTrack ? [videoTrack] : [])
+                            ]);
 
-                        // Handle when the user manually clicks "Stop sharing" on the browser banner
-                        videoTrack.onended = () => {
-                            toast.warning("Compartilhamento de tela interrompido. A gravação parou.");
-                            stopRecording();
-                        };
+                            // Handle when the user manually clicks "Stop sharing" on the browser banner
+                            if (videoTrack) {
+                                videoTrack.onended = () => {
+                                    toast.warning("Compartilhamento de tela interrompido. A gravação parou.");
+                                    stopRecording();
+                                };
+                            }
+                        } catch (mixErr) {
+                            console.error("Error mixing audio streams:", mixErr);
+                            toast.error("Erro interno ao misturar áudio. Gravando apenas microfone.");
+                            // Fallback to just microphone if mixing fails
+                            finalStream = micStream;
+                        }
                     } else {
                         // User shared screen but didn't check the "Share Audio" box
                         toast.error("Você não selecionou 'Compartilhar Áudio'. Voltando para gravação apenas de microfone.");
                         displayStream.getTracks().forEach(track => track.stop());
                     }
-                } catch (dispErr) {
+                } catch (dispErr: any) {
                     console.error("Error capturing display media:", dispErr);
-                    toast.error("Não foi possível capturar o áudio da guia. Gravando apenas microfone.");
+                    // If user cancels the prompt, we should abort the whole recording so they can try again.
+                    if (dispErr.name === "NotAllowedError" || dispErr.message.includes("cancel")) {
+                        toast.error("Compartilhamento de tela cancelado. Gravação abortada.");
+                        micStream.getTracks().forEach(track => track.stop());
+                        return; // Abort
+                    } else {
+                        toast.error("Não foi possível capturar o áudio da guia. Gravando apenas microfone.");
+                    }
                 }
             }
 
@@ -235,6 +253,17 @@ export function SegmentedAudioRecorder({ onAudioSegment, onComplete, disabled, r
         const secs = seconds % 60;
         return `${mins}:${secs.toString().padStart(2, "0")}`;
     };
+    
+    // Auto-start recording if Telemedicina was selected
+    useEffect(() => {
+        if (recordingMode === "telemedicina" && !isRecording && !isPaused && duration === 0) {
+            // Slight delay to allow the UI to render the new step before jarring the user with permissions
+            const timeout = setTimeout(() => {
+                startRecording();
+            }, 500);
+            return () => clearTimeout(timeout);
+        }
+    }, [recordingMode]); // Only run when component mounts with telemedicina
 
     useEffect(() => {
         return () => {
