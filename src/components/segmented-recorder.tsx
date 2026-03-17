@@ -111,7 +111,9 @@ export function SegmentedAudioRecorder({ onAudioSegment, onComplete, disabled, r
         }
 
         try {
-            const recorder = new MediaRecorder(streamRef.current, { mimeType });
+            // Create a dedicated audio-only stream to avoid MIME type clash with video tracks
+            const audioOnlyStream = new MediaStream(streamRef.current.getAudioTracks());
+            const recorder = new MediaRecorder(audioOnlyStream, { mimeType });
 
             // Current segment index for this recorder instance
             const currentSegmentIdx = chunkIndexRef.current;
