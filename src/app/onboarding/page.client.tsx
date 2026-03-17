@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { OnboardingFlow } from "@/components/onboarding-flow";
 
-export default function OnboardingPage() {
+export default function OnboardingClientPage() {
   const router = useRouter();
 
   const handleComplete = () => {

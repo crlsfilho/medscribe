@@ -2,13 +2,9 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import DashboardLayoutClient from "./layout.client";
+import OnboardingClientPage from "./page.client";
 
-export default async function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function OnboardingPage() {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.email) {
@@ -20,9 +16,10 @@ export default async function DashboardLayout({
     select: { onboardingComplete: true },
   });
 
-  if (!user?.onboardingComplete) {
-    redirect("/onboarding");
+  // If already onboarded, send them to the dashboard
+  if (user?.onboardingComplete) {
+    redirect("/dashboard");
   }
 
-  return <DashboardLayoutClient>{children}</DashboardLayoutClient>;
+  return <OnboardingClientPage />;
 }
