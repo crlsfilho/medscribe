@@ -52,7 +52,6 @@ function NovaConsultaContent() {
   // Audio and Visit data
   const [isRecordingComplete, setIsRecordingComplete] = useState(false);
   const [uploadedChunks, setUploadedChunks] = useState(0);
-  const [pulses, setPulses] = useState<{ id: number; text: string }[]>([]);
   const [visitId, setVisitId] = useState<string | null>(null);
 
   // Processing state
@@ -153,15 +152,18 @@ function NovaConsultaContent() {
 
       if (!res.ok) {
         console.error("Failed to process segment", index);
+        return undefined;
       } else {
         const data = await res.json();
         setUploadedChunks(prev => prev + 1);
         if (data.pulse) {
-          setPulses((prev) => [...prev, { id: index, text: data.pulse }]);
+          return data.pulse as string;
         }
+        return undefined;
       }
     } catch (e) {
       console.error("Chunk upload failed", e);
+      return undefined;
     }
   };
 
@@ -382,39 +384,12 @@ function NovaConsultaContent() {
           </div>
 
           {/* Audio Recorder Card */}
-          <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden flex flex-col md:flex-row">
-            <div className="flex-1">
-              <SegmentedAudioRecorder
-                onAudioSegment={handleAudioSegment}
-                onComplete={handleRecordingComplete}
-                disabled={loading || isRecordingComplete}
-              />
-            </div>
-            
-            {/* Consultation Pulse / Live Snippets */}
-            <div className={`md:w-64 border-t md:border-t-0 md:border-l border-border bg-muted/20 flex flex-col overflow-hidden transition-all duration-500 ease-in-out ${pulses.length > 0 ? "min-h-[200px]" : "h-0 md:h-auto md:w-0 border-transparent opacity-0"}`}>
-              <div className="p-4 border-b border-border/50 bg-background/50 flex items-center justify-between">
-                <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                  Live Pulse
-                </span>
-              </div>
-              <div className="p-4 overflow-y-auto max-h-[250px] space-y-3 flex-1 custom-scrollbar">
-                {pulses.map((pulse, i) => (
-                  <div key={pulse.id} className="animate-in fade-in slide-in-from-right-4 duration-500 flex items-start gap-3">
-                    <div className="text-[10px] font-mono text-muted-foreground/60 mt-0.5">{(i + 1) * 3}m</div>
-                    <p className="text-sm font-medium text-foreground leading-snug">
-                      "{pulse.text}"
-                    </p>
-                  </div>
-                ))}
-                {pulses.length === 0 && !isRecordingComplete && (
-                  <div className="h-full flex items-center justify-center p-4">
-                    <p className="text-xs text-muted-foreground/60 text-center italic">Insights parciais aparecerão aqui...</p>
-                  </div>
-                )}
-              </div>
-            </div>
+          <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
+            <SegmentedAudioRecorder
+              onAudioSegment={handleAudioSegment}
+              onComplete={handleRecordingComplete}
+              disabled={loading || isRecordingComplete}
+            />
           </div>
 
           {/* Process Button - Shows after recording finishes */}

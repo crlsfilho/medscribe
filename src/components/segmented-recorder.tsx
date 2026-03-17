@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 interface SegmentedAudioRecorderProps {
-    onAudioSegment: (blob: Blob, index: number) => Promise<void>;
+    onAudioSegment: (blob: Blob, index: number) => Promise<string | undefined>;
     onComplete: () => void;
     disabled?: boolean;
 }
@@ -14,6 +14,7 @@ export function SegmentedAudioRecorder({ onAudioSegment, onComplete, disabled }:
     const [isRecording, setIsRecording] = useState(false);
     const [duration, setDuration] = useState(0);
     const [chunkIndex, setChunkIndex] = useState(0);
+    const [currentPulse, setCurrentPulse] = useState<string | null>(null);
 
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const streamRef = useRef<MediaStream | null>(null);
@@ -89,7 +90,10 @@ export function SegmentedAudioRecorder({ onAudioSegment, onComplete, disabled }:
             recorder.ondataavailable = async (e) => {
                 if (e.data.size > 0) {
                     console.log(`Segment ${currentSegmentIdx} data available: ${e.data.size} bytes`);
-                    await onAudioSegment(e.data, currentSegmentIdx);
+                    const pulse = await onAudioSegment(e.data, currentSegmentIdx);
+                    if (pulse) {
+                        setCurrentPulse(pulse);
+                    }
                 }
             };
 
@@ -181,6 +185,16 @@ export function SegmentedAudioRecorder({ onAudioSegment, onComplete, disabled }:
                     >
                         Parar e Finalizar
                     </Button>
+                    
+                    {/* Live Pulse Insights */}
+                    <div className={`mt-4 w-full text-center transition-all duration-500 ease-in-out ${currentPulse ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 h-0 overflow-hidden"}`}>
+                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-muted/40 rounded-full border border-border/50">
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse flex-shrink-0" />
+                            <p className="text-sm font-medium text-foreground">
+                                {currentPulse}
+                            </p>
+                        </div>
+                    </div>
                 </div>
             ) : (
                 <div className="text-center space-y-4">
