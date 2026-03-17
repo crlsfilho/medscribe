@@ -217,9 +217,25 @@ export function DocumentModal({ open, onOpenChange, soap, patient }: DocumentMod
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto flex flex-col">
-                <DialogHeader>
-                    <DialogTitle>Gerador de Documentos</DialogTitle>
+            <DialogContent className="w-[95vw] sm:max-w-xl max-h-[85vh] overflow-y-auto flex flex-col rounded-2xl p-4 sm:p-6">
+                <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-2 border-b">
+                    <DialogTitle className="text-xl">Gerador de Documentos</DialogTitle>
+                    {/* Compact Help Button Next to Title */}
+                    <Dialog open={showHelp} onOpenChange={setShowHelp}>
+                        <DialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-muted/50 rounded-full">
+                                <HelpCircle className="w-5 h-5" />
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-sm rounded-2xl">
+                            <DialogHeader>
+                                <DialogTitle>Ajuda com Assinatura</DialogTitle>
+                            </DialogHeader>
+                            <div className="max-h-[400px] overflow-y-auto rounded-xl">
+                                <SignatureHelp />
+                            </div>
+                        </DialogContent>
+                    </Dialog>
                 </DialogHeader>
 
                 <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setGenerated(false); }} className="flex-1">
@@ -229,27 +245,41 @@ export function DocumentModal({ open, onOpenChange, soap, patient }: DocumentMod
                         <TabsTrigger value="certificate">Atestado</TabsTrigger>
                     </TabsList>
 
-                    <div className="p-4 border rounded-lg bg-muted/10 min-h-[300px]">
+                    <div className="p-6 border-2 border-dashed border-border/60 rounded-2xl bg-card min-h-[320px] mb-2 transition-all">
                         {!generated ? (
-                            <div className="flex flex-col items-center justify-center h-full space-y-4">
-                                <Label>Instrução Extra (Opcional)</Label>
-                                <Input
-                                    placeholder='Ex: "Adicionar Xarope para tosse"'
-                                    value={instruction}
-                                    onChange={(e) => setInstruction(e.target.value)}
-                                />
-                                <Button onClick={handleGenerateDraft} disabled={loading}>
-                                    {loading ? "Gerando Rascunho..." : "Gerar Rascunho com IA"}
-                                </Button>
-                                <p className="text-xs text-muted-foreground text-center px-8">
-                                    A IA irá analisar o diagnóstico e o plano terapêutico da consulta para preencher o documento automaticamente.
+                            <div className="flex flex-col items-center justify-center h-full space-y-6 pt-8 pb-4">
+                                <div className="w-16 h-16 bg-indigo-50 text-indigo-500 rounded-full flex items-center justify-center mb-2">
+                                    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
+                                    </svg>
+                                </div>
+                                <div className="w-full max-w-sm space-y-3">
+                                    <Input
+                                        placeholder='Instrução extra (ex: "Xarope para tosse")'
+                                        value={instruction}
+                                        onChange={(e) => setInstruction(e.target.value)}
+                                        className="h-12 rounded-xl text-center bg-muted/30 border-transparent focus-visible:bg-background"
+                                    />
+                                    <Button 
+                                        onClick={handleGenerateDraft} 
+                                        disabled={loading} 
+                                        className="w-full h-12 rounded-xl gap-2 font-medium"
+                                    >
+                                        {loading ? "Gerando Rascunho..." : "Gerar com Inteligência Artificial"}
+                                    </Button>
+                                </div>
+                                <p className="text-sm text-muted-foreground text-center max-w-sm px-4">
+                                    A IA preencherá o documento automaticamente com base no prontuário.
                                 </p>
                             </div>
                         ) : (
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between pb-2 border-b">
-                                    <h3 className="font-semibold text-sm">Editor de Rascunho</h3>
-                                    <Button variant="ghost" size="sm" onClick={() => setGenerated(false)} className="text-xs h-7">Refazer</Button>
+                            <div className="space-y-5">
+                                <div className="flex items-center justify-between pb-3 border-b border-border/50">
+                                    <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Rascunho Gerado</h3>
+                                    <Button variant="outline" size="sm" onClick={() => setGenerated(false)} className="text-xs h-8 rounded-lg gap-2">
+                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
+                                        Refazer
+                                    </Button>
                                 </div>
 
                                 {activeTab === "prescription" && (
@@ -265,7 +295,7 @@ export function DocumentModal({ open, onOpenChange, soap, patient }: DocumentMod
                                                             newMeds[idx].name = e.target.value;
                                                             setMedications(newMeds);
                                                         }}
-                                                        className="h-7 text-sm font-semibold border-none px-0 shadow-none focus-visible:ring-0"
+                                                        className="h-8 text-sm font-semibold border-none px-2 bg-transparent shadow-none focus-visible:ring-1 focus-visible:ring-primary/20 rounded-md"
                                                         placeholder="Nome do Medicamento"
                                                     />
                                                     <Input
@@ -275,7 +305,7 @@ export function DocumentModal({ open, onOpenChange, soap, patient }: DocumentMod
                                                             newMeds[idx].instructions = e.target.value;
                                                             setMedications(newMeds);
                                                         }}
-                                                        className="h-6 text-xs text-muted-foreground border-none px-0 shadow-none focus-visible:ring-0"
+                                                        className="h-7 text-xs text-muted-foreground border-none px-2 bg-transparent shadow-none focus-visible:ring-1 focus-visible:ring-primary/20 rounded-md"
                                                         placeholder="Posologia"
                                                     />
                                                 </div>
@@ -324,61 +354,51 @@ export function DocumentModal({ open, onOpenChange, soap, patient }: DocumentMod
                     </div>
                 </Tabs>
 
-                <DialogFooter className="mt-4 flex-col sm:flex-row gap-2">
-                    <div className="flex-1 flex items-center">
-                        <Dialog open={showHelp} onOpenChange={setShowHelp}>
-                            <DialogTrigger asChild>
-                                <Button variant="link" size="sm" className="text-muted-foreground gap-1 p-0 h-auto">
-                                    <HelpCircle className="w-3 h-3" />
-                                    Dúvidas sobre assinatura?
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent className="w-[350px]">
-                                <DialogHeader>
-                                    <DialogTitle>Ajuda com Assinatura</DialogTitle>
-                                </DialogHeader>
-                                <div className="max-h-[400px] overflow-y-auto">
-                                    <SignatureHelp />
+                <DialogFooter className="mt-6 flex flex-col sm:flex-row-reverse sm:items-center gap-3 w-full">
+                    {/* Primary Export / Sign Button */}
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button 
+                                disabled={!generated || isSigning} 
+                                className="w-full sm:w-auto h-12 gap-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-md sm:px-8 font-medium transition-all"
+                            >
+                                <ShieldCheck className="w-5 h-5" />
+                                {isSigning ? "Iniciando..." : "Assinar Digitalmente"}
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-[280px] rounded-xl p-2">
+                            <DropdownMenuItem onClick={() => handleDigitalSignature("cfm_vidaas")} className="gap-3 p-3 rounded-lg cursor-pointer">
+                                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                    <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" /></svg>
                                 </div>
-                            </DialogContent>
-                        </Dialog>
-                    </div>
-                    <div className="flex gap-2">
-                        <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button disabled={!generated || isSigning} className="gap-2 bg-indigo-600 hover:bg-indigo-700">
-                                    <ShieldCheck className="w-4 h-4" />
-                                    {isSigning ? "Iniciando..." : "Assinar Digitalmente"}
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-56">
-                                <DropdownMenuItem onClick={() => handleDigitalSignature("cfm_vidaas")} className="gap-2 py-3">
-                                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                                        <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" /></svg>
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <span className="font-medium text-xs">CFM (Vidaas)</span>
-                                        <span className="text-[10px] text-muted-foreground">Assinar via Nuvem/Celular</span>
-                                    </div>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => handleDigitalSignature("certillion")} className="gap-2 py-3">
-                                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                                        <Laptop className="w-4 h-4 text-blue-600" />
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <span className="font-medium text-xs">Certificado Privado</span>
-                                        <span className="text-[10px] text-muted-foreground">A1/A3 via Certillion</span>
-                                    </div>
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                        <Button variant="outline" onClick={handlePrint} disabled={!generated} className="gap-2 text-muted-foreground">
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
-                            Só Imprimir (Sem Valor Jurídico)
-                        </Button>
-                    </div>
+                                <div className="flex flex-col">
+                                    <span className="font-semibold text-sm">CFM (Vidaas)</span>
+                                    <span className="text-xs text-muted-foreground mt-0.5">Assinar via Nuvem/Celular</span>
+                                </div>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => handleDigitalSignature("certillion")} className="gap-3 p-3 rounded-lg cursor-pointer">
+                                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                                    <Laptop className="w-5 h-5 text-blue-600" />
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="font-semibold text-sm">Certificado Privado</span>
+                                    <span className="text-xs text-muted-foreground mt-0.5">A1/A3 via Certillion</span>
+                                </div>
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    {/* Secondary Ghost Button */}
+                    <Button 
+                        variant="ghost" 
+                        onClick={handlePrint} 
+                        disabled={!generated} 
+                        className="w-full sm:w-auto h-12 gap-2 text-muted-foreground hover:bg-muted/50 rounded-xl"
+                    >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                        Só Imprimir
+                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
