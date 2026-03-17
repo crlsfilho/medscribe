@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AudioRecorder } from "@/components/audio-recorder";
+import { SegmentedAudioRecorder } from "@/components/segmented-recorder";
 import { ProcessingScreen, ProcessingStep } from "@/components/processing-screen";
 import { ConsentDialog } from "@/components/consent-dialog";
 
@@ -50,7 +50,9 @@ function NovaConsultaContent() {
   }, [searchParams]);
 
   // Audio and Visit data
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [isRecordingComplete, setIsRecordingComplete] = useState(false);
+  const [uploadedChunks, setUploadedChunks] = useState(0);
+  const [pulses, setPulses] = useState<{ id: number; text: string }[]>([]);
   const [visitId, setVisitId] = useState<string | null>(null);
 
   // Processing state
@@ -134,37 +136,48 @@ function NovaConsultaContent() {
     setShowConsentDialog(false);
   };
 
-  const handleAudioReady = useCallback((blob: Blob) => {
-    setAudioBlob(blob);
-  }, []);
-
-  const handleProcessAudio = async () => {
-    if (!audioBlob || !visitId) return;
-
-    setProcessingStep("uploading");
-    setProcessingError("");
+  const handleAudioSegment = async (blob: Blob, index: number) => {
+    if (!visitId) return;
 
     try {
-      // Step 1: Upload and Transcribe
+      const ext = blob.type.includes('mp4') ? 'm4a' : 'webm';
       const formData = new FormData();
-      formData.append("audio", audioBlob, "recording.webm");
+      formData.append("audio", blob, `chunk_${index}.${ext}`);
       formData.append("visitId", visitId);
+      formData.append("chunkIndex", index.toString());
 
-      setProcessingStep("transcribing");
-
-      const transcribeResponse = await fetch("/api/transcribe", {
+      const res = await fetch("/api/transcribe-chunk", {
         method: "POST",
         body: formData,
       });
 
-      if (!transcribeResponse.ok) {
-        const data = await transcribeResponse.json();
-        throw new Error(data.error || "Erro na transcricao");
+      if (!res.ok) {
+        console.error("Failed to process segment", index);
+      } else {
+        const data = await res.json();
+        setUploadedChunks(prev => prev + 1);
+        if (data.pulse) {
+          setPulses((prev) => [...prev, { id: index, text: data.pulse }]);
+        }
       }
+    } catch (e) {
+      console.error("Chunk upload failed", e);
+    }
+  };
 
+  const handleRecordingComplete = () => {
+    setIsRecordingComplete(true);
+  };
+
+  const handleProcessAudio = async () => {
+    if (!visitId) return;
+
+    setProcessingStep("generating");
+    setProcessingError("");
+
+    try {
       // Step 2: Generate SOAP
-      setProcessingStep("generating");
-
+      // At this point, the background uploads already accumulated visit.transcriptText
       const soapResponse = await fetch("/api/generate-soap", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -172,8 +185,15 @@ function NovaConsultaContent() {
       });
 
       if (!soapResponse.ok) {
-        const data = await soapResponse.json();
-        throw new Error(data.error || "Erro ao gerar SOAP");
+        let errorMsg = "Erro ao gerar SOAP";
+        const contentType = soapResponse.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+           const data = await soapResponse.json();
+           errorMsg = data.error || errorMsg;
+        } else {
+           errorMsg = await soapResponse.text();
+        }
+        throw new Error(errorMsg);
       }
 
       // Step 3: Complete
@@ -198,7 +218,6 @@ function NovaConsultaContent() {
   const handleCancel = () => {
     setProcessingStep(null);
     setProcessingError("");
-    setAudioBlob(null);
   };
 
   // Show Processing Screen
@@ -363,30 +382,58 @@ function NovaConsultaContent() {
           </div>
 
           {/* Audio Recorder Card */}
-          <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-            <AudioRecorder
-              onAudioReady={handleAudioReady}
-              disabled={loading}
-            />
+          <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden flex flex-col md:flex-row">
+            <div className="flex-1">
+              <SegmentedAudioRecorder
+                onAudioSegment={handleAudioSegment}
+                onComplete={handleRecordingComplete}
+                disabled={loading || isRecordingComplete}
+              />
+            </div>
+            
+            {/* Consultation Pulse / Live Snippets */}
+            <div className={`md:w-64 border-t md:border-t-0 md:border-l border-border bg-muted/20 flex flex-col overflow-hidden transition-all duration-500 ease-in-out ${pulses.length > 0 ? "min-h-[200px]" : "h-0 md:h-auto md:w-0 border-transparent opacity-0"}`}>
+              <div className="p-4 border-b border-border/50 bg-background/50 flex items-center justify-between">
+                <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                  Live Pulse
+                </span>
+              </div>
+              <div className="p-4 overflow-y-auto max-h-[250px] space-y-3 flex-1 custom-scrollbar">
+                {pulses.map((pulse, i) => (
+                  <div key={pulse.id} className="animate-in fade-in slide-in-from-right-4 duration-500 flex items-start gap-3">
+                    <div className="text-[10px] font-mono text-muted-foreground/60 mt-0.5">{(i + 1) * 3}m</div>
+                    <p className="text-sm font-medium text-foreground leading-snug">
+                      "{pulse.text}"
+                    </p>
+                  </div>
+                ))}
+                {pulses.length === 0 && !isRecordingComplete && (
+                  <div className="h-full flex items-center justify-center p-4">
+                    <p className="text-xs text-muted-foreground/60 text-center italic">Insights parciais aparecerão aqui...</p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
-          {/* Process Button - Shows after recording */}
-          {audioBlob && (
+          {/* Process Button - Shows after recording finishes */}
+          {isRecordingComplete && (
             <div className="space-y-4">
               <Button
                 onClick={handleProcessAudio}
                 size="lg"
                 className="w-full h-14 rounded-xl text-base gap-3"
-                disabled={loading}
+                disabled={loading || uploadedChunks === 0}
               >
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
                 </svg>
-                Processar com IA
+                {uploadedChunks > 0 ? "Processar transcrição com IA" : "Processando áudio pendente..."}
               </Button>
 
               <p className="text-center text-xs text-muted-foreground">
-                O audio sera transcrito e uma nota SOAP sera gerada automaticamente
+                As fatias da gravação ({uploadedChunks} recebidas) serão compiladas e analisadas automaticamente
               </p>
             </div>
           )}

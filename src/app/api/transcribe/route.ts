@@ -18,11 +18,12 @@ export async function POST(request: NextRequest) {
     let visitId = "";
     let audioBuffer: Buffer;
     let saveToDb = true;
+    let file: File | null = null;
 
     if (contentType.includes("multipart/form-data")) {
       // Handle File Upload + Transcription
       const formData = await request.formData();
-      const file = formData.get("audio") as File;
+      file = formData.get("audio") as File;
       visitId = formData.get("visitId") as string;
       saveToDb = formData.get("saveToDb") !== "false";
 
@@ -107,7 +108,11 @@ export async function POST(request: NextRequest) {
     // --- Transcription with OpenAI Whisper ---
     console.log("Transcribing audio...");
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    const audioFile = new File([new Uint8Array(audioBuffer)], "audio.webm", { type: "audio/webm" });
+    
+    const audioName = file?.name || "audio.webm";
+    const audioMime = file?.type || "audio/webm";
+
+    const audioFile = new File([new Uint8Array(audioBuffer)], audioName, { type: audioMime });
 
     const transcription = await openai.audio.transcriptions.create({
       file: audioFile,

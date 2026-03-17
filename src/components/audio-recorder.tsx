@@ -22,7 +22,7 @@ export function AudioRecorder({ onAudioReady, onRecordingStart, disabled }: Audi
   const streamRef = useRef<MediaStream | null>(null);
 
   const getSupportedMimeType = () => {
-    const types = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg"];
+    const types = ["audio/mp4", "audio/webm;codecs=opus", "audio/webm", "audio/ogg"];
     for (const type of types) {
       if (MediaRecorder.isTypeSupported(type)) return type;
     }
