@@ -154,7 +154,9 @@ function SuggestionItem({
             <Badge variant="secondary" className="mr-1">
               {suggestion.normalizedCode}
             </Badge>
-            {suggestion.normalizedLabel}
+            {suggestion.normalizedLabel?.toLowerCase() !== suggestion.rawText.toLowerCase() && (
+              <span className="text-muted-foreground">{suggestion.normalizedLabel}</span>
+            )}
           </span>
           {suggestion.confidence && (
             <Badge variant="outline" className="text-xs">

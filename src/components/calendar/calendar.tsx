@@ -339,7 +339,8 @@ export function Calendar() {
         </div>
       ) : viewMode === "week" ? (
         // Week View
-        <div className="grid grid-cols-7 divide-x divide-border/50">
+        <div className="overflow-x-auto no-scrollbar pb-2 relative">
+          <div className="grid grid-cols-7 divide-x divide-border/50 min-w-[700px] snap-x">
           {weekDays.map((date, index) => {
             const isToday = isSameDay(date, today);
             const dayAppointments = getAppointmentsForDay(date);
@@ -414,12 +415,13 @@ export function Calendar() {
               </div>
             );
           })}
+          </div>
         </div>
-      ) : (
         // Month View
-        <div>
-          {/* Weekday Headers */}
-          <div className="grid grid-cols-7 border-b border-border/50">
+        <div className="overflow-x-auto no-scrollbar pb-2">
+          <div className="min-w-[700px]">
+            {/* Weekday Headers */}
+            <div className="grid grid-cols-7 border-b border-border/50 bg-muted/20">
             {WEEKDAYS.map((day) => (
               <div
                 key={day}
@@ -498,6 +500,7 @@ export function Calendar() {
                 })}
               </div>
             ))}
+            </div>
           </div>
         </div>
       )}

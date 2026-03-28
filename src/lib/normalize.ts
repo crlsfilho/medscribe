@@ -108,7 +108,12 @@ export async function normalizeTerms(
     }
   }
 
-  return suggestions;
+  // Keep only unique ones by Code
+  const uniqueSuggestions = suggestions.filter((s, index, self) =>
+    index === self.findIndex((t) => t.normalizedCode === s.normalizedCode)
+  );
+
+  return uniqueSuggestions;
 }
 
 // Export for direct use

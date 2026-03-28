@@ -1,4 +1,7 @@
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 interface Article {
     title: string;
@@ -92,30 +95,61 @@ async function fetchPubmed(query: string): Promise<Article[]> {
 }
 
 export async function GET() {
-    // 1. Ministério da Saúde RSS
+    const session = await getServerSession(authOptions);
+    let specialty = "medicina";
+
+    if (session?.user?.id) {
+        const user = await prisma.user.findUnique({
+            where: { id: session.user.id },
+            select: { specialty: true }
+        });
+        if (user?.specialty) {
+            specialty = user.specialty.toLowerCase();
+        }
+    }
+
+    // Map specialty to English for PubMed and specific Portuguese terms for Google News
+    const pubmedQueries: Record<string, string> = {
+        "cardiologia": "cardiology",
+        "dermatologia": "dermatology",
+        "pediatria": "pediatrics",
+        "psiquiatria": "psychiatry",
+        "neurologia": "neurology",
+        "ginecologia": "gynecology",
+        "ortopedia": "orthopedics",
+        "endocrinologia": "endocrinology",
+        "gastroenterologia": "gastroenterology",
+        "urologia": "urology",
+        "clínica geral": "internal medicine",
+    };
+
+    const pubmedTerm = pubmedQueries[specialty] || "medicine";
+    
+    // 1. Ministério da Saúde RSS (Global News)
     const minSaudeFeed = "https://news.google.com/rss/search?q=site:gov.br/saude+when:14d&hl=pt-BR&gl=BR&ceid=BR:pt-419";
 
-    // 2. Google News: Cardiology (Scientific/Official sources)
-    const cardiologiaFeed = "https://news.google.com/rss/search?q=cardiologia+site:sbc.org.br+OR+site:scielo.br+OR+site:arquivosonline.com.br+when:30d&hl=pt-BR&gl=BR&ceid=BR:pt-419";
+    // 2. Google News: Specific area
+    const googleQuery = encodeURIComponent(`${specialty} site:sbc.org.br OR site:scielo.br OR site:arquivosonline.com.br`);
+    const specialtyFeed = `https://news.google.com/rss/search?q=${googleQuery}+when:30d&hl=pt-BR&gl=BR&ceid=BR:pt-419`;
 
-    const [cardioNews, govNews, pubmedNews] = await Promise.all([
-        fetchRSS(cardiologiaFeed, "SBC/Cardio"),
+    const [specialtyNews, govNews, pubmedNews] = await Promise.all([
+        fetchRSS(specialtyFeed, `SciELO / BR (${specialty})`),
         fetchRSS(minSaudeFeed, "Min. Saúde"),
-        fetchPubmed("cardiology") // New source
+        fetchPubmed(pubmedTerm)
     ]);
 
     // Interleave news for variety
     const articles = [];
-    const maxLength = Math.max(cardioNews.length, govNews.length, pubmedNews.length);
+    const maxLength = Math.max(specialtyNews.length, govNews.length, pubmedNews.length);
 
     for (let i = 0; i < maxLength; i++) {
-        if (pubmedNews[i]) articles.push(pubmedNews[i]); // Priority to new source
+        if (pubmedNews[i]) articles.push(pubmedNews[i]);
         if (govNews[i]) articles.push(govNews[i]);
-        if (cardioNews[i]) articles.push(cardioNews[i]);
+        if (specialtyNews[i]) articles.push(specialtyNews[i]);
     }
 
     return NextResponse.json({
-        articles: articles.slice(0, 7), // Increased limit slightly
+        articles: articles.slice(0, 10), 
         source: "rss_custom_mixed"
     });
 }

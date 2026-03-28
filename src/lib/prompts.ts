@@ -7,8 +7,8 @@ REGRAS GERAIS:
 4. Quando o paciente negar algo explicitamente, use a forma "Nega..." (ex: "Nega alergias").
 5. Calcule automaticamente: IMC, classificação do IMC, carga tabágica (anos/maço).
 6. Preste atenção especial a dados numéricos (medidas, doses, datas).
-7. Na seção de Análise (#A) e Plano (#P), vá além da simples transcrição: acrescente informações clínicas relevantes, correlações diagnósticas e sugestões baseadas nas últimas diretrizes (SBC/AHA/ACC/ESC).
-8. Retorne APENAS JSON válido, sem markdown, sem comentários fora do JSON.`;
+8. Para Medicamentos e Diagnósticos no JSON, inicie CADA linha com uma TAG CURTA entre colchetes. Ex: "[Analgésico] Paracetamol 750mg" ou "[Viral] Suspeita de Dengue". A tag deve ter 1 palavra genérica.
+9. Retorne APENAS JSON válido, sem markdown, sem comentários fora do JSON.`;
 
 export const SOAP_USER_PROMPT = `Analise a transcrição de consulta médica abaixo e gere DOIS documentos formatedos (Markdown) e extraia os dados estruturados.
 

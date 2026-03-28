@@ -398,14 +398,19 @@ export function SOAPEditor({
               />
               {soap.assessment.diagnoses.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {soap.assessment.diagnoses.map((diag, idx) => (
-                    <span
-                      key={idx}
-                      className="px-2 py-1 rounded-lg bg-purple-50 text-purple-700 text-xs font-medium"
-                    >
-                      {diag}
-                    </span>
-                  ))}
+                  {soap.assessment.diagnoses.map((diag, idx) => {
+                    const match = diag.match(/^\[(.*?)\]/);
+                    const label = match ? match[1] : (diag.split(' ')[0] || diag);
+                    return (
+                      <span
+                        key={idx}
+                        className="px-2 py-1 rounded-lg bg-purple-50 text-purple-700 text-xs font-medium"
+                        title={diag}
+                      >
+                        {label}
+                      </span>
+                    )
+                  })}
                 </div>
               )}
             </div>
@@ -469,14 +474,19 @@ export function SOAPEditor({
               />
               {soap.plan.medications.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {soap.plan.medications.map((med, idx) => (
-                    <span
-                      key={idx}
-                      className="px-2 py-1 rounded-lg bg-orange-50 text-orange-700 text-xs font-medium"
-                    >
-                      {med}
-                    </span>
-                  ))}
+                  {soap.plan.medications.map((med, idx) => {
+                    const match = med.match(/^\[(.*?)\]/);
+                    const label = match ? match[1] : (med.split(' ')[0] || med);
+                    return (
+                      <span
+                        key={idx}
+                        className="px-2 py-1 rounded-lg bg-orange-50 text-orange-700 text-xs font-medium"
+                        title={med}
+                      >
+                        {label}
+                      </span>
+                    )
+                  })}
                 </div>
               )}
             </div>

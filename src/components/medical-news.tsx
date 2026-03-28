@@ -1,19 +1,15 @@
-"use client";
-
 import { useEffect, useState } from "react";
-import { cn } from "@/lib/utils";
 
 interface Article {
     title: string;
     url: string;
     source: { name: string };
+    publishedAt: string;
 }
 
 export function MedicalNews() {
     const [articles, setArticles] = useState<Article[]>([]);
-    const [currentIndex, setCurrentIndex] = useState(0);
     const [loading, setLoading] = useState(true);
-    const [fade, setFade] = useState(true);
 
     useEffect(() => {
         const fetchNews = async () => {
@@ -31,49 +27,57 @@ export function MedicalNews() {
         fetchNews();
     }, []);
 
-    useEffect(() => {
-        if (articles.length === 0) return;
-
-        const interval = setInterval(() => {
-            setFade(false); // Start fade out
-            setTimeout(() => {
-                setCurrentIndex((prev) => (prev + 1) % articles.length);
-                setFade(true); // Fade in
-            }, 300); // Wait for fade out animation
-        }, 5000); // Rotate every 5 seconds
-
-        return () => clearInterval(interval);
-    }, [articles]);
-
     if (loading || articles.length === 0) return null;
 
-    const currentArticle = articles[currentIndex];
-
     return (
-        <div className="flex items-center gap-3 bg-muted/30 border border-border/40 rounded-full px-4 py-1.5 w-full max-w-full md:w-fit md:max-w-2xl overflow-hidden">
-            {/* Live Indicator */}
-            <div className="relative flex items-center justify-center w-2.5 h-2.5 shrink-0">
-                <span className={cn("absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-ping", fade && "animate-none")} />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-            </div>
-
-            {/* Ticker Text */}
-            <div className="min-w-0 flex-1 flex items-center gap-2 overflow-hidden">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider shrink-0 whitespace-nowrap">
-                    {currentArticle.source.name}
-                </span>
-                <span className="text-muted-foreground/40 text-[10px] shrink-0">•</span>
-                <a
-                    href={currentArticle.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={cn(
-                        "text-xs text-foreground/80 hover:text-primary truncate transition-opacity duration-300",
-                        fade ? "opacity-100" : "opacity-0"
-                    )}
-                >
-                    {currentArticle.title}
-                </a>
+        <div className="w-full relative mt-2">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Radar Médico Atualizado (Sua Especialidade)</h3>
+            
+            <div className="flex flex-col sm:flex-row overflow-x-auto gap-5 pb-6 no-scrollbar -mx-2 px-2 snap-x">
+                {articles.map((article, idx) => {
+                    const isPubmed = article.source.name.toLowerCase().includes("pubmed");
+                    const isGov = article.source.name.toLowerCase().includes("gov") || article.url.includes("gov.br");
+                    return (
+                        <a
+                            key={idx}
+                            href={article.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="min-w-[280px] sm:min-w-[320px] bg-white border border-slate-200/60 rounded-3xl p-5 shrink-0 hover:border-emerald-300 hover:shadow-xl hover:shadow-emerald-900/5 transition-all group snap-start flex flex-col justify-between relative overflow-hidden"
+                        >
+                            {/* Decorative Background Gradient */}
+                            <div className={`absolute top-0 right-0 w-32 h-32 blur-3xl rounded-full opacity-10 pointer-events-none ${isPubmed ? 'bg-indigo-500' : isGov ? 'bg-amber-500' : 'bg-emerald-500'} -translate-y-12 translate-x-12`} />
+                            
+                            <div>
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-2">
+                                        <span className={`relative flex h-2.5 w-2.5`}>
+                                            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isPubmed ? 'bg-indigo-400' : isGov ? 'bg-amber-400' : 'bg-emerald-400'}`}></span>
+                                            <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${isPubmed ? 'bg-indigo-500' : isGov ? 'bg-amber-500' : 'bg-emerald-500'}`}></span>
+                                        </span>
+                                        <span className={`text-[11px] font-bold truncate uppercase tracking-widest px-2.5 py-1 rounded-full border ${isPubmed ? 'bg-indigo-50 text-indigo-700 border-indigo-100' : isGov ? 'bg-amber-50 text-amber-700 border-amber-100' : 'bg-emerald-50 text-emerald-700 border-emerald-100'}`}>
+                                            {article.source.name}
+                                        </span>
+                                    </div>
+                                </div>
+                                <h4 className="text-base font-bold text-slate-800 leading-snug line-clamp-3 group-hover:text-emerald-700 transition-colors z-10 relative">
+                                    {article.title}
+                                </h4>
+                            </div>
+                            
+                            <div className="mt-6 flex items-center justify-between z-10 relative border-t border-slate-100 pt-4">
+                                <p className="text-[12px] text-slate-500 font-medium">
+                                    {new Date(article.publishedAt).toLocaleDateString("pt-BR", { day: '2-digit', month: 'long', year: 'numeric' })}
+                                </p>
+                                <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors">
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </a>
+                    );
+                })}
             </div>
         </div>
     );

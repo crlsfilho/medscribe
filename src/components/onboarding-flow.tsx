@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -65,6 +66,14 @@ export function OnboardingFlow({ onComplete }: { onComplete: () => void }) {
   });
   const [loading, setLoading] = useState(false);
 
+  const { data: session } = useSession();
+
+  useEffect(() => {
+    if (session?.user?.name && !data.name) {
+      setData((prev) => ({ ...prev, name: session.user.name as string }));
+    }
+  }, [session?.user?.name]);
+
   const progress = ((currentStep + 1) / STEPS.length) * 100;
 
   const validateCurrentStep = (): boolean => {
@@ -128,6 +137,20 @@ export function OnboardingFlow({ onComplete }: { onComplete: () => void }) {
     }
   };
 
+  const handleSkipAll = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/user/skip-onboarding", { method: "POST" });
+      if (!response.ok) throw new Error("Erro ao pular");
+      toast.success("Você pode completar o cadastro depois nas Configurações!", { duration: 4500 });
+      onComplete();
+    } catch (err) {
+      toast.error("Erro ao pular o onboarding.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async () => {
     setLoading(true);
 
@@ -170,8 +193,17 @@ export function OnboardingFlow({ onComplete }: { onComplete: () => void }) {
       {/* Background Decorative Elements */}
       <div className="absolute top-20 right-0 w-[500px] h-[500px] bg-snug-sage-light rounded-full blur-[100px] opacity-60 pointer-events-none"></div>
 
-      <div className="w-full max-w-xl bg-white rounded-[2rem] shadow-float border border-snug-sand p-8 md:p-12 z-10">
+      <div className="w-full max-w-xl bg-white rounded-[2rem] shadow-float border border-snug-sand p-8 md:p-12 z-10 relative">
         
+        <Button
+          onClick={handleSkipAll}
+          disabled={loading}
+          variant="ghost"
+          className="absolute top-6 right-6 font-medium text-snug-muted hover:text-snug-text transition-colors rounded-full"
+        >
+          Pular
+        </Button>
+
         {/* Header Branding */}
         <div className="flex items-center gap-2 mb-8 justify-center opacity-80">
             <div className="w-8 h-8 rounded-xl bg-snug-sage text-white flex items-center justify-center">
@@ -408,8 +440,7 @@ export function OnboardingFlow({ onComplete }: { onComplete: () => void }) {
           )}
         </div>
 
-        {/* Navigation Buttons */}
-        <div className="flex gap-4 mt-12">
+        <div className="flex gap-4 mt-12 justify-between">
           {currentStep > 0 && (
             <Button
               variant="outline"
@@ -418,17 +449,6 @@ export function OnboardingFlow({ onComplete }: { onComplete: () => void }) {
               className="flex-shrink-0 px-6 h-14 rounded-full border-snug-sand font-bold text-snug-text hover:bg-snug-bg transition-colors"
             >
               Voltar
-            </Button>
-          )}
-
-          {currentStep === STEPS.length - 1 && (
-            <Button
-              variant="ghost"
-              onClick={handleSkip}
-              disabled={loading}
-              className="flex-shrink-0 px-6 h-14 rounded-full font-bold text-snug-muted hover:bg-snug-bg hover:text-snug-text transition-colors"
-            >
-              Pular
             </Button>
           )}
 

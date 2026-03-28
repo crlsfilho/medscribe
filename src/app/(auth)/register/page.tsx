@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,7 +47,21 @@ export default function RegisterPage() {
         return;
       }
 
-      router.push("/login?registered=true");
+      // Auto-login zero friction
+      const signInResponse = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (signInResponse?.error) {
+        setError("Conta criada, mas erro ao logar. Redirecionando...");
+        setTimeout(() => router.push("/login"), 1500);
+        return;
+      }
+
+      // Hard redirect to guarantee session propagation in NextAuth
+      window.location.href = "/onboarding";
     } catch {
       setError("Erro ao conectar. Tente novamente.");
     } finally {
