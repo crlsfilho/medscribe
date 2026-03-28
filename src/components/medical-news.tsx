@@ -43,37 +43,33 @@ export function MedicalNews() {
                             href={article.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="min-w-[280px] sm:min-w-[320px] bg-white border border-slate-200/60 rounded-3xl p-5 shrink-0 hover:border-emerald-300 hover:shadow-xl hover:shadow-emerald-900/5 transition-all group snap-start flex flex-col justify-between relative overflow-hidden"
+                            className="w-[200px] sm:w-[240px] bg-white border border-slate-200/60 rounded-2xl p-3 shrink-0 hover:border-emerald-300 hover:shadow-md transition-all group snap-start flex flex-col justify-between relative overflow-hidden"
                         >
                             {/* Decorative Background Gradient */}
-                            <div className={`absolute top-0 right-0 w-32 h-32 blur-3xl rounded-full opacity-10 pointer-events-none ${isPubmed ? 'bg-indigo-500' : isGov ? 'bg-amber-500' : 'bg-emerald-500'} -translate-y-12 translate-x-12`} />
+                            <div className={`absolute top-0 right-0 w-24 h-24 blur-3xl rounded-full opacity-10 pointer-events-none ${isPubmed ? 'bg-indigo-500' : isGov ? 'bg-amber-500' : 'bg-emerald-500'} -translate-y-8 translate-x-8`} />
                             
-                            <div>
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="flex items-center gap-2">
-                                        <span className={`relative flex h-2.5 w-2.5`}>
-                                            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isPubmed ? 'bg-indigo-400' : isGov ? 'bg-amber-400' : 'bg-emerald-400'}`}></span>
-                                            <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${isPubmed ? 'bg-indigo-500' : isGov ? 'bg-amber-500' : 'bg-emerald-500'}`}></span>
-                                        </span>
-                                        <span className={`text-[11px] font-bold truncate uppercase tracking-widest px-2.5 py-1 rounded-full border ${isPubmed ? 'bg-indigo-50 text-indigo-700 border-indigo-100' : isGov ? 'bg-amber-50 text-amber-700 border-amber-100' : 'bg-emerald-50 text-emerald-700 border-emerald-100'}`}>
-                                            {article.source.name}
-                                        </span>
-                                    </div>
+                            <div className="z-10 relative">
+                                <div className="flex items-center gap-1.5 mb-1.5">
+                                    <span className={`relative flex h-1.5 w-1.5`}>
+                                        <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isPubmed ? 'bg-indigo-400' : isGov ? 'bg-amber-400' : 'bg-emerald-400'}`}></span>
+                                        <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${isPubmed ? 'bg-indigo-500' : isGov ? 'bg-amber-500' : 'bg-emerald-500'}`}></span>
+                                    </span>
+                                    <span className="text-[9px] font-bold truncate uppercase tracking-widest text-slate-400">
+                                        {article.source.name}
+                                    </span>
                                 </div>
-                                <h4 className="text-base font-bold text-slate-800 leading-snug line-clamp-3 group-hover:text-emerald-700 transition-colors z-10 relative">
+                                <h4 className="text-sm font-semibold text-slate-800 leading-tight truncate group-hover:text-emerald-700 transition-colors" title={article.title}>
                                     {article.title}
                                 </h4>
                             </div>
                             
-                            <div className="mt-6 flex items-center justify-between z-10 relative border-t border-slate-100 pt-4">
-                                <p className="text-[12px] text-slate-500 font-medium">
-                                    {new Date(article.publishedAt).toLocaleDateString("pt-BR", { day: '2-digit', month: 'long', year: 'numeric' })}
+                            <div className="mt-3 flex items-center justify-between z-10 relative">
+                                <p className="text-[10px] text-slate-400 font-medium">
+                                    {new Date(article.publishedAt).toLocaleDateString("pt-BR", { day: '2-digit', month: 'short' })}
                                 </p>
-                                <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors">
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                                    </svg>
-                                </div>
+                                <svg className="w-3.5 h-3.5 text-slate-300 group-hover:text-emerald-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                                </svg>
                             </div>
                         </a>
                     );
