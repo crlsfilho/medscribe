@@ -417,6 +417,7 @@ export function Calendar() {
           })}
           </div>
         </div>
+      ) : (
         // Month View
         <div className="overflow-x-auto no-scrollbar pb-2">
           <div className="min-w-[700px]">
