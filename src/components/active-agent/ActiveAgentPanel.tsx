@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { ActionableItemCard } from "./ActionableItemCard";
 import { TissFormModal } from "./TissFormModal";
+import { Progress } from "@/components/ui/progress";
 import { ActionableItem, TissMetadata } from "@/types/active-agent";
 
 interface ActiveAgentPanelProps {
@@ -27,6 +28,32 @@ export function ActiveAgentPanel({
   const [items, setItems] = useState<ActionableItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [detecting, setDetecting] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Simulated progress logic
+  useEffect(() => {
+    if (detecting) {
+        setProgress(5);
+        progressIntervalRef.current = setInterval(() => {
+            setProgress(prev => {
+                if (prev >= 95) return 95;
+                const increment = (95 - prev) / 15;
+                return prev + Math.max(increment, 1);
+            });
+        }, 900);
+    } else {
+        if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+        if (progress > 0) {
+            setProgress(100);
+            const timer = setTimeout(() => setProgress(0), 500);
+            return () => clearTimeout(timer);
+        }
+    }
+    return () => {
+        if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+    };
+  }, [detecting]);
   const [isExpanded, setIsExpanded] = useState(true);
   const [selectedItem, setSelectedItem] = useState<ActionableItem | null>(null);
   const [showTissModal, setShowTissModal] = useState(false);
@@ -142,11 +169,11 @@ export function ActiveAgentPanel({
     <>
       <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl overflow-hidden">
         {/* Header */}
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="w-full px-4 py-3 flex items-center justify-between hover:bg-indigo-100/50 transition-colors"
-        >
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="flex-1 px-4 py-3 flex items-center gap-2 hover:bg-indigo-100/50 transition-colors"
+          >
             <svg
               className="w-5 h-5 text-indigo-600"
               fill="none"
@@ -166,17 +193,27 @@ export function ActiveAgentPanel({
                 {pendingItems.length}
               </span>
             )}
-          </div>
-          <svg
-            className={`w-5 h-5 text-gray-500 transition-transform ${isExpanded ? "rotate-180" : ""}`}
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
+          </button>
+          <button
+            onClick={runDetection}
+            disabled={detecting}
+            className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
+            <svg className={`w-4 h-4 ${detecting ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
+        </div>
+
+        {detecting && (
+          <div className="px-4 py-2 border-b border-gray-100 bg-gray-50/50">
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-[10px] text-gray-500 italic">Analisando consulta...</span>
+              <span className="text-[10px] text-gray-500 font-medium">{Math.floor(progress)}%</span>
+            </div>
+            <Progress value={progress} className="h-1 bg-gray-200" />
+          </div>
+        )}
 
         {/* Content */}
         {isExpanded && (

@@ -50,16 +50,16 @@ export async function POST(request: NextRequest) {
         ${JSON.stringify(soapContext || {}, null, 2)}`;
 
         const response = await openai.chat.completions.create({
-            model: "gpt-4-turbo-preview", // Using a smarter model for reasoning
+            model: "gpt-4o", 
             messages: [
-                { role: "system", content: systemPrompt },
+                { role: "system", content: systemPrompt + "\nREGRAS CRITICAS: 1. Retorne APENAS JSON. 2. Máximo 3 hipóteses. 3. Seja empático mas técnico." },
                 { role: "user", content: userContent },
             ],
             response_format: { type: "json_object" },
-            temperature: 0.2,
+            temperature: 0.1,
         });
 
-        const data = JSON.parse(response.choices[0]?.message?.content || "{}");
+        const data = JSON.parse(response.choices[0]?.message?.content || '{"hypotheses":[], "alert_flags":[]}');
 
         return NextResponse.json(data);
 

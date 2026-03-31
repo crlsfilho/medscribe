@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 
 interface PubMedReference {
     id: string;
@@ -42,6 +43,33 @@ export function DiagnosticPanel({ transcript, soapContext, className }: Diagnost
     const [evidenceCache, setEvidenceCache] = useState<Record<number, PubMedReference[]>>({});
     const [loadingEvidence, setLoadingEvidence] = useState<Record<number, boolean>>({});
     const [lastAnalyzedLength, setLastAnalyzedLength] = useState(0);
+    const [progress, setProgress] = useState(0);
+    const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Simulated progress logic
+    useEffect(() => {
+        if (loading) {
+            setProgress(5);
+            progressIntervalRef.current = setInterval(() => {
+                setProgress(prev => {
+                    if (prev >= 95) return 95;
+                    // Slow down as it gets closer to 90
+                    const increment = (95 - prev) / 10;
+                    return prev + Math.max(increment, 1);
+                });
+            }, 800);
+        } else {
+            if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+            if (progress > 0) {
+                setProgress(100);
+                const timer = setTimeout(() => setProgress(0), 500);
+                return () => clearTimeout(timer);
+            }
+        }
+        return () => {
+            if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+        };
+    }, [loading]);
 
     const handleAnalyze = async () => {
         if (!transcript || transcript.length < 10) return;
@@ -139,6 +167,16 @@ export function DiagnosticPanel({ transcript, soapContext, className }: Diagnost
                     {loading ? "Analisando..." : analyzed ? "Re-analisar" : "Analisar Caso"}
                 </Button>
             </div>
+
+            {loading && (
+                <div className="px-4 py-2 border-b border-border bg-muted/10">
+                    <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] text-muted-foreground font-medium italic">IA está processando...</span>
+                        <span className="text-[10px] text-muted-foreground font-medium">{Math.floor(progress)}%</span>
+                    </div>
+                    <Progress value={progress} className="h-1" />
+                </div>
+            )}
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">

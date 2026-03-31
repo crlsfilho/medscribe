@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import { generatePrescriptionPDF, generateExamPDF, generateCertificatePDF, generateDiagnosticPDF } from "@/lib/pdf";
 import { toast } from "sonner";
 import { SignatureHelp } from "./signature-help";
@@ -35,6 +36,32 @@ export function DocumentModal({ open, onOpenChange, soap, patient }: DocumentMod
     const [isSigning, setIsSigning] = useState(false);
     const [instruction, setInstruction] = useState("");
     const [showHelp, setShowHelp] = useState(false);
+    const [progress, setProgress] = useState(0);
+    const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Simulated progress logic
+    useEffect(() => {
+        if (loading) {
+            setProgress(5);
+            progressIntervalRef.current = setInterval(() => {
+                setProgress(prev => {
+                    if (prev >= 95) return 95;
+                    const increment = (95 - prev) / 12;
+                    return prev + Math.max(increment, 1);
+                });
+            }, 700);
+        } else {
+            if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+            if (progress > 0) {
+                setProgress(100);
+                const timer = setTimeout(() => setProgress(0), 500);
+                return () => clearTimeout(timer);
+            }
+        }
+        return () => {
+            if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+        };
+    }, [loading]);
 
     // States for structured data
     const [medications, setMedications] = useState<any[]>([]);
@@ -80,7 +107,11 @@ export function DocumentModal({ open, onOpenChange, soap, patient }: DocumentMod
 
     const getDocumentBlob = (): { blob: Blob | null, fileName: string } => {
         const commonData = {
-            patient: { name: patient.name },
+            patient: { 
+                name: patient.name,
+                age: (soap as any)?.patient?.age || (soap as any)?.age || null,
+                sex: (soap as any)?.patient?.sex || (soap as any)?.sex || null
+            },
             date: new Date().toLocaleDateString("pt-BR"),
             doctorName: session?.user?.name || "Dr. MedScribe"
         };
@@ -154,9 +185,18 @@ export function DocumentModal({ open, onOpenChange, soap, patient }: DocumentMod
                 setDiagnoses(data.diagnoses || []);
             }
 
+            if (activeTab === "prescription" && (!data.medications || data.medications.length === 0)) {
+                toast.warning("A IA não identificou medicamentos no contexto.");
+            } else if (activeTab === "exam" && (!data.exams || data.exams.length === 0)) {
+                toast.warning("A IA não identificou exames no contexto.");
+            } else if (activeTab === "diagnoses" && (!data.diagnoses || data.diagnoses.length === 0)) {
+                toast.warning("A IA não identificou hipóteses diagnósticas.");
+            }
+
             setGenerated(true);
         } catch (err) {
-            toast.error("Falha ao gerar rascunho. Tente novamente.");
+            console.error("Draft Error:", err);
+            toast.error("Falha ao gerar rascunho. O contexto pode estar insuficiente ou houve erro na API.");
         } finally {
             setLoading(false);
         }
@@ -210,8 +250,6 @@ export function DocumentModal({ open, onOpenChange, soap, patient }: DocumentMod
             setIsSigning(false);
         }
     };
-
-    // --- RENDER HELPERS ---
 
     // --- RENDER HELPERS ---
     
@@ -418,7 +456,7 @@ export function DocumentModal({ open, onOpenChange, soap, patient }: DocumentMod
                                         <div className="space-y-1">
                                             <Label>Texto do Atestado</Label>
                                             <Textarea
-                                                value={certificate.full_text || `Atesto para os devidos fins a necessidade de repouso por ${certificate.days || 1} dias.`}
+                                                value={certificate.full_text || `Atestado para os devidos fins a necessidade de repouso por ${certificate.days || 1} dias.`}
                                                 onChange={e => setCertificate({ ...certificate, full_text: e.target.value })}
                                                 className="h-32"
                                             />

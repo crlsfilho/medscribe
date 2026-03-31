@@ -107,13 +107,13 @@ export async function POST(request: NextRequest) {
         }
 
         const response = await openai.chat.completions.create({
-            model: "gpt-4-turbo-preview",
+            model: "gpt-4o", // Stronger model for diagnostic reasoning
             messages: [
-                { role: "system", content: basePrompt + specificPrompt },
-                { role: "user", content: "Gere o documento estruturado em JSON." },
+                { role: "system", content: basePrompt + specificPrompt + "\nREGRAS CRITICAS: 1. Retorne APENAS o JSON. 2. Use PT-BR. 3. Se não houver dados, retorne uma estrutura válida com campos vazios (não null). 4. Garanta que o JSON seja estritamente bem formado." },
+                { role: "user", content: "Gere o documento estruturado em JSON agora." },
             ],
             response_format: { type: "json_object" },
-            temperature: 0.2,
+            temperature: 0.1, // Lower temperature for more consistent JSON
         });
 
         const data = JSON.parse(response.choices[0]?.message?.content || "{}");

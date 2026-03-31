@@ -66,7 +66,7 @@ export interface DiagnosticData {
 }
 
 export function generateSOAPPDF(data: ExportData): Blob {
-  const doc = new jsPDF();
+  const doc = new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
   let y = 20;
   const margin = 20;
@@ -410,7 +410,7 @@ function addPDFFooter(doc: jsPDF, doctorName?: string) {
 }
 
 export function generatePrescriptionPDF(data: PrescriptionData): Blob {
-  const doc = new jsPDF();
+  const doc = new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
   let y = addPDFHeader(doc, "Receituário Médico", data);
   const margin = 20;
 
@@ -437,7 +437,7 @@ export function generatePrescriptionPDF(data: PrescriptionData): Blob {
 }
 
 export function generateExamPDF(data: ExamData): Blob {
-  const doc = new jsPDF();
+  const doc = new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
   let y = addPDFHeader(doc, "Pedido de Exames", data);
   const margin = 20;
 
@@ -463,7 +463,7 @@ export function generateExamPDF(data: ExamData): Blob {
 }
 
 export function generateCertificatePDF(data: CertificateData): Blob {
-  const doc = new jsPDF();
+  const doc = new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
   let y = addPDFHeader(doc, "Atestado Médico", data);
   const margin = 20;
   const contentWidth = doc.internal.pageSize.getWidth() - (margin * 2);
@@ -486,7 +486,7 @@ export function generateCertificatePDF(data: CertificateData): Blob {
 }
 
 export function generateDiagnosticPDF(data: DiagnosticData): Blob {
-  const doc = new jsPDF();
+  const doc = new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
   let y = addPDFHeader(doc, "Hipóteses Diagnósticas", data);
   const margin = 20;
 
