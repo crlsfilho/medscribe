@@ -47,6 +47,9 @@ export function ActiveAgentPanel({
 
   const runDetection = useCallback(async () => {
     setDetecting(true);
+    // Update lastDetectedLength immediately to prevent loop
+    if (transcript) setLastDetectedLength(transcript.length);
+    
     try {
       const response = await fetch("/api/active-agent/detect", {
         method: "POST",
@@ -65,7 +68,7 @@ export function ActiveAgentPanel({
     } finally {
       setDetecting(false);
     }
-  }, [visitId]);
+  }, [visitId, transcript]);
 
   useEffect(() => {
     fetchItems();
@@ -77,7 +80,6 @@ export function ActiveAgentPanel({
     if (transcript && transcript.length > 500 && Math.abs(transcript.length - lastDetectedLength) > 500 && !detecting && items.length === 0) {
         const timer = setTimeout(() => {
             runDetection();
-            setLastDetectedLength(transcript.length);
         }, 5000);
         return () => clearTimeout(timer);
     }

@@ -41,8 +41,10 @@ export function DiagnosticPanel({ transcript, soapContext, className }: Diagnost
     // Cache for PubMed results per hypothesis
     const [evidenceCache, setEvidenceCache] = useState<Record<number, PubMedReference[]>>({});
     const [loadingEvidence, setLoadingEvidence] = useState<Record<number, boolean>>({});
+    const [lastAnalyzedLength, setLastAnalyzedLength] = useState(0);
 
     const handleAnalyze = async () => {
+        if (!transcript || transcript.length < 10) return;
         setLoading(true);
         try {
             const res = await fetch("/api/analyze-diagnosis", {
@@ -55,9 +57,14 @@ export function DiagnosticPanel({ transcript, soapContext, className }: Diagnost
                 const json = await res.json();
                 setData(json);
                 setAnalyzed(true);
+                setLastAnalyzedLength(transcript.length);
+            } else {
+                // If it fails, mark as analyzed anyway to stop the loop, or set a shorter lastAnalyzedLength
+                setLastAnalyzedLength(transcript.length);
             }
         } catch (err) {
             console.error("Diagnosis Error", err);
+            setLastAnalyzedLength(transcript.length);
         } finally {
             setLoading(false);
         }
@@ -65,13 +72,17 @@ export function DiagnosticPanel({ transcript, soapContext, className }: Diagnost
 
     // Auto-analyze if there is enough content and haven't analyzed yet
     useEffect(() => {
-        if (!analyzed && transcript && transcript.length > 300 && !loading) {
+        const transcriptLength = transcript?.length || 0;
+        const needsAnalysis = !analyzed && transcriptLength > 300 && !loading;
+        const hasSignificantNewContent = Math.abs(transcriptLength - lastAnalyzedLength) > 500;
+
+        if ((needsAnalysis || (analyzed && hasSignificantNewContent)) && !loading) {
             const timer = setTimeout(() => {
                 handleAnalyze();
-            }, 3000); // 3 second debounce to ensure typing/transcription paused
+            }, 5000); // 5 second debounce - be more conservative
             return () => clearTimeout(timer);
         }
-    }, [transcript, analyzed, loading]);
+    }, [transcript, analyzed, loading, lastAnalyzedLength]);
 
     const fetchEvidence = async (index: number, term: string) => {
         if (evidenceCache[index] || loadingEvidence[index]) return;
