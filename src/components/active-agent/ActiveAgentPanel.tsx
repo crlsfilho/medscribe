@@ -10,6 +10,8 @@ interface ActiveAgentPanelProps {
   patientName: string;
   patientAge?: number | null;
   patientSex?: string | null;
+  transcript?: string;
+  soapJson?: string;
   onRefresh?: () => void;
 }
 
@@ -18,6 +20,8 @@ export function ActiveAgentPanel({
   patientName,
   patientAge,
   patientSex,
+  transcript,
+  soapJson,
   onRefresh,
 }: ActiveAgentPanelProps) {
   const [items, setItems] = useState<ActionableItem[]>([]);
@@ -66,6 +70,18 @@ export function ActiveAgentPanel({
   useEffect(() => {
     fetchItems();
   }, [fetchItems]);
+
+  // Proactive detection when transcript is long and no items yet
+  const [lastDetectedLength, setLastDetectedLength] = useState(0);
+  useEffect(() => {
+    if (transcript && transcript.length > 500 && Math.abs(transcript.length - lastDetectedLength) > 500 && !detecting && items.length === 0) {
+        const timer = setTimeout(() => {
+            runDetection();
+            setLastDetectedLength(transcript.length);
+        }, 5000);
+        return () => clearTimeout(timer);
+    }
+  }, [detecting, items.length, runDetection, lastDetectedLength, transcript]);
 
   const handleAction = async (itemId: string, action: "accept" | "dismiss") => {
     const item = items.find((i) => i.id === itemId);

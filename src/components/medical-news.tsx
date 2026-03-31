@@ -43,19 +43,19 @@ export function MedicalNews() {
     const isGov = article.source.name.toLowerCase().includes("gov") || article.url.includes("gov.br");
 
     return (
-        <div className="w-full sm:max-w-[320px] md:max-w-[420px] relative mt-2">
+        <div className="w-full sm:max-w-[360px] md:max-w-[460px] relative mt-2 shrink-0">
             <a
                 href={article.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full flex items-center gap-2 bg-white/40 border border-slate-200/50 rounded-lg px-2.5 py-1.5 hover:bg-white/60 hover:border-emerald-200 transition-all group overflow-hidden"
+                className="w-full flex items-center gap-2.5 bg-white/40 border border-slate-200/50 rounded-lg px-3.5 py-2.5 hover:bg-white/60 hover:border-emerald-200 transition-all group overflow-hidden"
             >
                 <div className="flex items-center gap-1.5 shrink-0 opacity-80">
-                    <span className={`relative flex h-1.5 w-1.5`}>
+                    <span className={`relative flex h-2 w-2`}>
                         <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isPubmed ? 'bg-indigo-400' : isGov ? 'bg-amber-400' : 'bg-emerald-400'}`}></span>
-                        <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${isPubmed ? 'bg-indigo-500' : isGov ? 'bg-amber-500' : 'bg-emerald-500'}`}></span>
+                        <span className={`relative inline-flex rounded-full h-2 w-2 ${isPubmed ? 'bg-indigo-500' : isGov ? 'bg-amber-500' : 'bg-emerald-500'}`}></span>
                     </span>
-                    <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+                    <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
                         {article.source.name}
                     </span>
                 </div>
@@ -63,7 +63,7 @@ export function MedicalNews() {
                 {/* Wrap transition for fading */}
                 <span 
                     key={currentIndex} 
-                    className="text-[11px] font-medium text-slate-700 truncate group-hover:text-emerald-700 transition-colors animate-in fade-in duration-500 flex-1"
+                    className="text-xs font-medium text-slate-700 truncate group-hover:text-emerald-700 transition-colors animate-in fade-in duration-500 flex-1 leading-relaxed"
                     title={article.title}
                 >
                     {article.title}

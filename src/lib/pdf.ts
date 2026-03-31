@@ -58,6 +58,13 @@ export interface CertificateData {
   doctorName?: string;
 }
 
+export interface DiagnosticData {
+  patient: PatientInfo;
+  diagnoses: string[];
+  date: string;
+  doctorName?: string;
+}
+
 export function generateSOAPPDF(data: ExportData): Blob {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -412,15 +419,15 @@ export function generatePrescriptionPDF(data: PrescriptionData): Blob {
   doc.text("Uso:", margin, y);
   y += 10;
 
-  data.medications.forEach((med, index) => {
+  (data.medications || []).forEach((med, index) => {
     // Medication Name
     doc.setFont("helvetica", "bold");
-    doc.text(`${index + 1}. ${med.name}`, margin + 5, y);
+    doc.text(`${index + 1}. ${med.name || ""}`, margin + 5, y);
     y += 7;
 
     // Instructions
     doc.setFont("helvetica", "normal");
-    const lines = doc.splitTextToSize(med.instructions, 150);
+    const lines = doc.splitTextToSize(med.instructions || "", 150);
     doc.text(lines, margin + 10, y);
     y += (lines.length * 6) + 5;
   });
@@ -439,10 +446,11 @@ export function generateExamPDF(data: ExamData): Blob {
   doc.text("Solicito a realização dos seguintes exames:", margin, y);
   y += 15;
 
-  data.exams.forEach((exam) => {
+  (data.exams || []).forEach((exam) => {
     doc.circle(margin + 5, y - 1.5, 1, "F");
-    doc.text(exam, margin + 10, y);
-    y += 8;
+    const lines = doc.splitTextToSize(exam || "", 150);
+    doc.text(lines, margin + 10, y);
+    y += (lines.length * 6) + 2;
   });
 
   y += 10;
@@ -464,7 +472,7 @@ export function generateCertificatePDF(data: CertificateData): Blob {
   doc.setFontSize(12);
   doc.setFont("helvetica", "normal");
 
-  const lines = doc.splitTextToSize(data.full_text, contentWidth);
+  const lines = doc.splitTextToSize(data.full_text || `Atesto para os devidos fins a necessidade de repouso por ${data.days || 1} dias.`, contentWidth);
   doc.text(lines, margin, y);
   y += (lines.length * 8) + 10;
 
@@ -472,6 +480,27 @@ export function generateCertificatePDF(data: CertificateData): Blob {
     doc.setFont("helvetica", "bold");
     doc.text(`CID: ${data.cid}`, margin, y);
   }
+
+  addPDFFooter(doc, data.doctorName);
+  return doc.output("blob");
+}
+
+export function generateDiagnosticPDF(data: DiagnosticData): Blob {
+  const doc = new jsPDF();
+  let y = addPDFHeader(doc, "Hipóteses Diagnósticas", data);
+  const margin = 20;
+
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "normal");
+  doc.text("Hipóteses Diagnósticas Avaliadas:", margin, y);
+  y += 15;
+
+  (data.diagnoses || []).forEach((diag) => {
+    doc.circle(margin + 5, y - 1.5, 1, "F");
+    const lines = doc.splitTextToSize(diag || "", 150);
+    doc.text(lines, margin + 10, y);
+    y += (lines.length * 6) + 2;
+  });
 
   addPDFFooter(doc, data.doctorName);
   return doc.output("blob");

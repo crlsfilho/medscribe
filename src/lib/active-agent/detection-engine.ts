@@ -90,8 +90,8 @@ export async function detectActionableItems(
 ): Promise<ActionableItem[]> {
   const items: ActionableItem[] = [];
 
-  // Build prompt
-  const prompt = buildDetectionPrompt(soapJson, transcript, false);
+  // Build prompt - Use full detection to catch referrals and follow-ups
+  const prompt = buildDetectionPrompt(soapJson, transcript, true);
 
   // Call LLM
   let response: string;
@@ -122,6 +122,53 @@ export async function detectActionableItems(
     if (tissItem) {
       items.push(tissItem);
     }
+  }
+
+  // Process referrals -> referral_letter items
+  if (detectionResult.referrals && detectionResult.referrals.length > 0) {
+    detectionResult.referrals.forEach(ref => {
+      items.push({
+        id: `ref-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        visitId,
+        type: "referral_letter",
+        confidence: 0.8, // Default high confidence if mentioned
+        sourceText: ref.sourceText || `Encaminhamento para ${ref.specialty}`,
+        status: "suggested",
+        createdAt: new Date(),
+        metadata: {
+          specialty: ref.specialty,
+          reason: ref.reason,
+          clinicalSummary: ref.reason, // Use reason as summary if not specified
+          urgency: ref.urgency || "routine"
+        }
+      } as any);
+    });
+  }
+
+  // Process follow-ups -> follow_up items
+  if (detectionResult.followUps && detectionResult.followUps.length > 0) {
+    detectionResult.followUps.forEach(fu => {
+      // Simple date parsing for common expressions
+      let suggestedDate = new Date();
+      if (fu.timeExpression.includes("15 dias")) suggestedDate.setDate(suggestedDate.getDate() + 15);
+      else if (fu.timeExpression.includes("1 mes") || fu.timeExpression.includes("30 dias")) suggestedDate.setMonth(suggestedDate.getMonth() + 1);
+      else suggestedDate.setDate(suggestedDate.getDate() + 30); // Default 1 month
+
+      items.push({
+        id: `fu-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        visitId,
+        type: "follow_up",
+        confidence: 0.9,
+        sourceText: fu.sourceText || `Retorno em ${fu.timeExpression}`,
+        status: "suggested",
+        createdAt: new Date(),
+        metadata: {
+          suggestedDate,
+          parsedExpression: fu.timeExpression,
+          reason: fu.reason
+        }
+      } as any);
+    });
   }
 
   return items;

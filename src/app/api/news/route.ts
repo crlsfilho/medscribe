@@ -56,7 +56,7 @@ async function fetchRSS(url: string, sourceName: string): Promise<Article[]> {
 
 const NCBI_BASE_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils";
 
-async function fetchPubmed(query: string): Promise<Article[]> {
+async function fetchPubmed(query: string, specialtyName: string): Promise<Article[]> {
     try {
         // 1. Search for recent free full text articles
         const esearchUrl = `${NCBI_BASE_URL}/esearch.fcgi?db=pubmed&term=${encodeURIComponent(
@@ -83,7 +83,7 @@ async function fetchPubmed(query: string): Promise<Article[]> {
                 title: doc.title,
                 description: doc.source || "PubMed Article",
                 url: `https://pubmed.ncbi.nlm.nih.gov/${id}/`,
-                source: { name: "PubMed/Cardio" },
+                source: { name: `PubMed/${specialtyName}` },
                 publishedAt: doc.sortpubdate || doc.pubdate
             };
         }).filter(Boolean) as Article[];
@@ -132,10 +132,12 @@ export async function GET() {
     const googleQuery = encodeURIComponent(`${specialty} site:sbc.org.br OR site:scielo.br OR site:arquivosonline.com.br`);
     const specialtyFeed = `https://news.google.com/rss/search?q=${googleQuery}+when:30d&hl=pt-BR&gl=BR&ceid=BR:pt-419`;
 
+    const formattedSpecialty = specialty.charAt(0).toUpperCase() + specialty.slice(1);
+
     const [specialtyNews, govNews, pubmedNews] = await Promise.all([
-        fetchRSS(specialtyFeed, `SciELO / BR (${specialty})`),
+        fetchRSS(specialtyFeed, `SciELO / BR (${formattedSpecialty})`),
         fetchRSS(minSaudeFeed, "Min. Saúde"),
-        fetchPubmed(pubmedTerm)
+        fetchPubmed(pubmedTerm, formattedSpecialty)
     ]);
 
     // Interleave news for variety

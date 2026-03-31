@@ -430,6 +430,8 @@ export default function ConsultaPage() {
                 patientName={visit.patient.name}
                 patientAge={visit.patient.age}
                 patientSex={visit.patient.sex}
+                transcript={transcript}
+                soapJson={JSON.stringify(soap)}
               />
             </div>
           )}

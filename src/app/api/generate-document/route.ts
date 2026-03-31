@@ -80,6 +80,21 @@ export async function POST(request: NextRequest) {
                 "full_text": "Texto formal do atestado ( Atesto para os devidos fins...)"
             }
             `;
+        } else if (type === "diagnoses") {
+            specificPrompt = `
+            ACAO: Gerar um Relato de Hipóteses Diagnósticas.
+            COMPORTAMENTO:
+            1. Liste todas as hipóteses diagnósticas principais e diagnósticos diferenciais do SOAP.
+            2. Seja direto e objetivo.
+            
+            SAIDA JSON OBRIGATORIA:
+            {
+                "diagnoses": [
+                    "Diagnóstico 1 ou Hipótese",
+                    "Diagnóstico 2 ou Hipótese"
+                ]
+            }
+            `;
         } else {
             specificPrompt = `
             ACAO: Gerar Documento Genérico (Encaminhamento ou Outros).

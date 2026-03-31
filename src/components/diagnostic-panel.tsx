@@ -65,14 +65,13 @@ export function DiagnosticPanel({ transcript, soapContext, className }: Diagnost
 
     // Auto-analyze if there is enough content and haven't analyzed yet
     useEffect(() => {
-        if (!analyzed && transcript && transcript.length > 50 && !loading) {
-            // Optional: Auto-analyze or wait for user? 
-            // For now, let's wait for user or maybe auto-analyze if it's the first load
-            // handleAnalyze(); 
-            // Keeping it manual for now to save tokens during dev, but user wanted "Proactive".
-            // Let's make it auto but with a debounce or check.
+        if (!analyzed && transcript && transcript.length > 300 && !loading) {
+            const timer = setTimeout(() => {
+                handleAnalyze();
+            }, 3000); // 3 second debounce to ensure typing/transcription paused
+            return () => clearTimeout(timer);
         }
-    }, [transcript]);
+    }, [transcript, analyzed, loading]);
 
     const fetchEvidence = async (index: number, term: string) => {
         if (evidenceCache[index] || loadingEvidence[index]) return;

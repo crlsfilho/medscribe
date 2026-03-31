@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { generatePrescriptionPDF, generateExamPDF, generateCertificatePDF } from "@/lib/pdf";
+import { generatePrescriptionPDF, generateExamPDF, generateCertificatePDF, generateDiagnosticPDF } from "@/lib/pdf";
 import { toast } from "sonner";
 import { SignatureHelp } from "./signature-help";
 import { ShieldCheck, HelpCircle, Laptop, Smartphone } from "lucide-react";
@@ -40,8 +40,41 @@ export function DocumentModal({ open, onOpenChange, soap, patient }: DocumentMod
     const [medications, setMedications] = useState<any[]>([]);
     const [exams, setExams] = useState<{ name: string; tuss_code?: string }[]>([]);
     const [certificate, setCertificate] = useState<any>({ days: "1", reason: "", full_text: "" });
+    const [diagnoses, setDiagnoses] = useState<string[]>([]);
 
     const [generated, setGenerated] = useState(false);
+
+    // Auto-populate from SOAP if possible so user can export immediately
+    useEffect(() => {
+        if (open && soap) {
+            let hasData = false;
+            if (soap.plan?.medications?.length > 0) {
+                setMedications(soap.plan.medications.map((m: string) => ({ name: m, instructions: "Uso conforme orientação clínica" })));
+                hasData = true;
+            } else {
+                setMedications([]);
+            }
+            if (soap.plan?.procedures?.length > 0 || soap.objective?.labResults?.length > 0) {
+                const procedures = soap.plan.procedures || [];
+                setExams(procedures.map((p: string) => ({ name: p, tuss_code: "" })));
+                hasData = true;
+            } else {
+                setExams([]);
+            }
+            if (soap.assessment?.diagnoses?.length > 0) {
+                setDiagnoses(soap.assessment.diagnoses);
+                hasData = true;
+            } else {
+                setDiagnoses([]);
+            }
+            
+            if (hasData) {
+                setGenerated(true);
+            } else {
+                setGenerated(false);
+            }
+        }
+    }, [open, soap]);
 
     // --- ACTIONS ---
 
@@ -78,6 +111,13 @@ export function DocumentModal({ open, onOpenChange, soap, patient }: DocumentMod
                 full_text: certificate.full_text
             });
             fileName = `atestado-${patient.name}.pdf`;
+        } else if (activeTab === "diagnoses") {
+            if (diagnoses.length === 0) return { blob: null, fileName };
+            blob = generateDiagnosticPDF({
+                ...commonData,
+                diagnoses: diagnoses
+            });
+            fileName = `hipoteses-diagnosticas-${patient.name}.pdf`;
         }
         return { blob, fileName };
     };
@@ -110,6 +150,8 @@ export function DocumentModal({ open, onOpenChange, soap, patient }: DocumentMod
                 setExams(formattedExams);
             } else if (activeTab === "certificate") {
                 setCertificate(data);
+            } else if (activeTab === "diagnoses") {
+                setDiagnoses(data.diagnoses || []);
             }
 
             setGenerated(true);
@@ -181,17 +223,23 @@ export function DocumentModal({ open, onOpenChange, soap, patient }: DocumentMod
                     btnText: loading ? "Analisando Prontuário..." : "Gerar Pedido de Exames",
                     description: "A IA estruturará os exames necessários com base no diagnóstico e plano do paciente."
                 };
+            case "diagnoses":
+                return {
+                    placeholder: 'Ex: "Gerar relatório de hipóteses diagnósticas com base na avaliação"',
+                    btnText: loading ? "Gerando Relatório..." : "Gerar Hipóteses",
+                    description: "A IA listará os diagnósticos e possíveis diagnósticos diferenciais."
+                };
             case "certificate":
                 return {
                     placeholder: 'Ex: "Atestado de 3 dias por Sindrome Gripal"',
-                    btnText: loading ? "Formulando Atestado..." : "Gerar Atestado Médico",
-                    description: "A IA formulará o atestado com o repouso repassado no prontuário clínico."
+                    btnText: loading ? "Formulando Atestado..." : "Gerar Atestado",
+                    description: "A IA formulará o atestado com o repouso repassado no prontuário."
                 };
             default: // prescription
                 return {
                     placeholder: 'Ex: "Adicionar xarope para tosse"',
-                    btnText: loading ? "Montando Receita..." : "Gerar Receita com IA",
-                    description: "A IA preencherá as medicações exatas com suas posologias citadas na consulta."
+                    btnText: loading ? "Montando Receita..." : "Gerar Receita",
+                    description: "A IA preencherá as medicações exatas com suas posologias."
                 };
         }
     };
@@ -265,10 +313,11 @@ export function DocumentModal({ open, onOpenChange, soap, patient }: DocumentMod
                 </DialogHeader>
 
                 <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setGenerated(false); }} className="flex-1 mt-4">
-                    <TabsList className="grid w-full grid-cols-3 mb-6 bg-muted/50 p-1.5 rounded-2xl h-auto">
-                        <TabsTrigger value="prescription" className="rounded-xl py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm font-medium transition-all">Receita</TabsTrigger>
-                        <TabsTrigger value="exam" className="rounded-xl py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm font-medium transition-all">Exames</TabsTrigger>
-                        <TabsTrigger value="certificate" className="rounded-xl py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm font-medium transition-all">Atestado</TabsTrigger>
+                    <TabsList className="grid w-full grid-cols-4 mb-6 bg-muted/50 p-1.5 rounded-2xl h-auto">
+                        <TabsTrigger value="prescription" className="rounded-xl py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm font-medium transition-all text-xs sm:text-sm">Receita</TabsTrigger>
+                        <TabsTrigger value="exam" className="rounded-xl py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm font-medium transition-all text-xs sm:text-sm">Exames</TabsTrigger>
+                        <TabsTrigger value="certificate" className="rounded-xl py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm font-medium transition-all text-xs sm:text-sm">Atestado</TabsTrigger>
+                        <TabsTrigger value="diagnoses" className="rounded-xl py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm font-medium transition-all text-xs sm:text-sm">Hipóteses</TabsTrigger>
                     </TabsList>
 
                     <div className="p-6 border-2 border-dashed border-border/60 rounded-[20px] bg-card/50 min-h-[320px] mb-2 transition-all">
@@ -369,11 +418,44 @@ export function DocumentModal({ open, onOpenChange, soap, patient }: DocumentMod
                                         <div className="space-y-1">
                                             <Label>Texto do Atestado</Label>
                                             <Textarea
-                                                value={certificate.full_text || `Atesto para os devidos fins que o paciente necessita de ${certificate.days} dias de repouso.`}
+                                                value={certificate.full_text || `Atesto para os devidos fins a necessidade de repouso por ${certificate.days || 1} dias.`}
                                                 onChange={e => setCertificate({ ...certificate, full_text: e.target.value })}
                                                 className="h-32"
                                             />
                                         </div>
+                                    </div>
+                                )}
+
+                                {activeTab === "diagnoses" && (
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between items-center pb-2 border-b border-border/50">
+                                            <span className="text-xs font-medium text-muted-foreground w-full">Diagnóstico / Hipótese</span>
+                                        </div>
+                                        {diagnoses.map((diag, idx) => (
+                                            <div key={idx} className="flex gap-2 items-center">
+                                                <Input
+                                                    value={diag}
+                                                    onChange={(e) => {
+                                                        const newDiags = [...diagnoses];
+                                                        newDiags[idx] = e.target.value;
+                                                        setDiagnoses(newDiags);
+                                                    }}
+                                                    className="flex-grow h-8 text-sm border-none shadow-none focus-visible:ring-1 focus-visible:ring-primary/20 bg-muted/30"
+                                                    placeholder="Diagnóstico"
+                                                />
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 shrink-0"
+                                                    onClick={() => setDiagnoses(diagnoses.filter((_, i) => i !== idx))}
+                                                >
+                                                    ✕
+                                                </Button>
+                                            </div>
+                                        ))}
+                                        <Button variant="outline" size="sm" onClick={() => setDiagnoses([...diagnoses, ""])} className="w-full mt-2 border-dashed rounded-xl h-10 text-muted-foreground hover:text-foreground">
+                                            + Adicionar Hipótese Manualmente
+                                        </Button>
                                     </div>
                                 )}
                             </div>
