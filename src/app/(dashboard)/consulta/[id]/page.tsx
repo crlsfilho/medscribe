@@ -348,6 +348,7 @@ export default function ConsultaPage() {
       <DocumentModal
         open={showDocModal}
         onOpenChange={setShowDocModal}
+        visitId={visitId}
         soap={soap}
         patient={visit.patient}
       />

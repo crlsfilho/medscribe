@@ -25,11 +25,12 @@ import { useSession } from "next-auth/react";
 interface DocumentModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    visitId: string;
     soap: any;
-    patient: { name: string; cpf?: string };
+    patient: { name: string; age?: number | null; sex?: string | null; cpf?: string };
 }
 
-export function DocumentModal({ open, onOpenChange, soap, patient }: DocumentModalProps) {
+export function DocumentModal({ open, onOpenChange, visitId, soap, patient }: DocumentModalProps) {
     const { data: session } = useSession();
     const [activeTab, setActiveTab] = useState("prescription");
     const [loading, setLoading] = useState(false);
@@ -204,7 +205,7 @@ export function DocumentModal({ open, onOpenChange, soap, patient }: DocumentMod
     };
 
     const handleSave = async () => {
-        if (!soap?.id) {
+        if (!visitId) {
             toast.error("ID da consulta não encontrado.");
             return;
         }
@@ -221,7 +222,7 @@ export function DocumentModal({ open, onOpenChange, soap, patient }: DocumentMod
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    visitId: soap.id,
+                    visitId: visitId,
                     type: activeTab,
                     content: content
                 })
