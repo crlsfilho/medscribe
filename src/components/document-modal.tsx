@@ -11,7 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { generatePrescriptionPDF, generateExamPDF, generateCertificatePDF, generateDiagnosticPDF } from "@/lib/pdf";
 import { toast } from "sonner";
 import { SignatureHelp } from "./signature-help";
-import { ShieldCheck, HelpCircle, Laptop, Smartphone } from "lucide-react";
+import { ShieldCheck, HelpCircle, Laptop, Smartphone, Save, FileText, Check } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -34,6 +34,7 @@ export function DocumentModal({ open, onOpenChange, soap, patient }: DocumentMod
     const [activeTab, setActiveTab] = useState("prescription");
     const [loading, setLoading] = useState(false);
     const [isSigning, setIsSigning] = useState(false);
+    const [isSavingDoc, setIsSavingDoc] = useState(false);
     const [instruction, setInstruction] = useState("");
     const [showHelp, setShowHelp] = useState(false);
     const [progress, setProgress] = useState(0);
@@ -69,7 +70,7 @@ export function DocumentModal({ open, onOpenChange, soap, patient }: DocumentMod
     const [certificate, setCertificate] = useState<any>({ days: "1", reason: "", full_text: "" });
     const [diagnoses, setDiagnoses] = useState<string[]>([]);
 
-    const [generated, setGenerated] = useState(false);
+    const [isDraftReady, setIsDraftReady] = useState(false);
 
     // Auto-populate from SOAP if possible so user can export immediately
     useEffect(() => {
@@ -96,9 +97,9 @@ export function DocumentModal({ open, onOpenChange, soap, patient }: DocumentMod
             }
             
             if (hasData) {
-                setGenerated(true);
+                setIsDraftReady(true);
             } else {
-                setGenerated(false);
+                setIsDraftReady(false);
             }
         }
     }, [open, soap]);
@@ -193,12 +194,46 @@ export function DocumentModal({ open, onOpenChange, soap, patient }: DocumentMod
                 toast.warning("A IA não identificou hipóteses diagnósticas.");
             }
 
-            setGenerated(true);
+            setIsDraftReady(true);
         } catch (err) {
             console.error("Draft Error:", err);
             toast.error("Falha ao gerar rascunho. O contexto pode estar insuficiente ou houve erro na API.");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleSave = async () => {
+        if (!soap?.id) {
+            toast.error("ID da consulta não encontrado.");
+            return;
+        }
+
+        setIsSavingDoc(true);
+        try {
+            let content: any = {};
+            if (activeTab === "prescription") content = { medications };
+            else if (activeTab === "exam") content = { exams };
+            else if (activeTab === "certificate") content = certificate;
+            else if (activeTab === "diagnoses") content = { diagnoses };
+
+            const res = await fetch("/api/visit-documents", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    visitId: soap.id,
+                    type: activeTab,
+                    content: content
+                })
+            });
+
+            if (!res.ok) throw new Error("Erro ao salvar");
+
+            toast.success("Documento salvo com sucesso!");
+        } catch (err) {
+            toast.error("Erro ao salvar documento.");
+        } finally {
+            setIsSavingDoc(false);
         }
     };
 
@@ -350,16 +385,36 @@ export function DocumentModal({ open, onOpenChange, soap, patient }: DocumentMod
                     </Dialog>
                 </DialogHeader>
 
-                <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setGenerated(false); }} className="flex-1 mt-4">
-                    <TabsList className="grid w-full grid-cols-4 mb-6 bg-muted/50 p-1.5 rounded-2xl h-auto">
-                        <TabsTrigger value="prescription" className="rounded-xl py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm font-medium transition-all text-xs sm:text-sm">Receita</TabsTrigger>
-                        <TabsTrigger value="exam" className="rounded-xl py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm font-medium transition-all text-xs sm:text-sm">Exames</TabsTrigger>
-                        <TabsTrigger value="certificate" className="rounded-xl py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm font-medium transition-all text-xs sm:text-sm">Atestado</TabsTrigger>
-                        <TabsTrigger value="diagnoses" className="rounded-xl py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm font-medium transition-all text-xs sm:text-sm">Hipóteses</TabsTrigger>
+                <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setIsDraftReady(false); }} className="flex-1 mt-4">
+                    <TabsList className="flex w-fit mx-auto mb-8 bg-[#f5f3f0] p-1 rounded-full h-12 items-center">
+                        <TabsTrigger 
+                            value="prescription" 
+                            className="rounded-full px-6 py-2 data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm text-muted-foreground transition-all text-sm font-medium border-none"
+                        >
+                            Receita
+                        </TabsTrigger>
+                        <TabsTrigger 
+                            value="exam" 
+                            className="rounded-full px-6 py-2 data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm text-muted-foreground transition-all text-sm font-medium border-none"
+                        >
+                            Exames
+                        </TabsTrigger>
+                        <TabsTrigger 
+                            value="certificate" 
+                            className="rounded-full px-6 py-2 data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm text-muted-foreground transition-all text-sm font-medium border-none"
+                        >
+                            Atestado
+                        </TabsTrigger>
+                        <TabsTrigger 
+                            value="diagnoses" 
+                            className="rounded-full px-6 py-2 data-[state=active]:bg-white data-[state=active]:text-foreground data-[state=active]:shadow-sm text-muted-foreground transition-all text-sm font-medium border-none"
+                        >
+                            Hipóteses
+                        </TabsTrigger>
                     </TabsList>
 
-                    <div className="p-6 border-2 border-dashed border-border/60 rounded-[20px] bg-card/50 min-h-[320px] mb-2 transition-all">
-                        {!generated ? (
+                    <div className="p-6 border-2 border-dashed border-border/40 rounded-[28px] bg-card/30 min-h-[320px] mb-2 transition-all relative">
+                        {!isDraftReady ? (
                             <div className="flex flex-col items-center justify-center h-full space-y-6 pt-8 pb-4">
                                 <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-2 shadow-inner">
                                     <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -388,10 +443,10 @@ export function DocumentModal({ open, onOpenChange, soap, patient }: DocumentMod
                             </div>
                         ) : (
                             <div className="space-y-5">
-                                <div className="flex items-center justify-between pb-3 border-b border-border/50">
-                                    <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Rascunho Gerado</h3>
-                                    <Button variant="outline" size="sm" onClick={() => setGenerated(false)} className="text-xs h-8 rounded-lg gap-2">
-                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
+                                <div className="flex items-center justify-between pb-4 border-b border-border/50">
+                                    <h3 className="font-bold text-xs text-muted-foreground uppercase tracking-widest">RASCUNHO GERADO</h3>
+                                    <Button variant="ghost" size="sm" onClick={() => setIsDraftReady(false)} className="text-xs h-8 rounded-full gap-2 hover:bg-muted">
+                                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
                                         Refazer
                                     </Button>
                                 </div>
@@ -501,51 +556,80 @@ export function DocumentModal({ open, onOpenChange, soap, patient }: DocumentMod
                     </div>
                 </Tabs>
 
-                <DialogFooter className="mt-6 flex flex-col sm:flex-row-reverse sm:items-center gap-3 w-full border-t border-border/40 pt-5">
-                    {/* Primary Export / Sign Button */}
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button 
-                                disabled={!generated || isSigning} 
-                                className="w-full sm:w-auto h-14 gap-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-lg hover:shadow-xl sm:px-8 font-bold text-base transition-all hover:-translate-y-0.5"
+                <DialogFooter className="mt-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full border-t border-border/40 pt-6">
+                    {!isDraftReady ? (
+                        <div className="w-full flex justify-end">
+                            <Button
+                                onClick={handleGenerateDraft}
+                                disabled={loading}
+                                className="w-full sm:w-auto h-12 px-8 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold transition-all"
                             >
-                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                                {isSigning ? "Iniciando..." : tabData.btnText.includes("Receita") ? "Assinar Receita" : "Assinar Digitalmente"}
+                                {loading ? "Gerando..." : tabData.btnText}
                             </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-[280px] rounded-xl p-2 shadow-xl border-border/60">
-                            <DropdownMenuItem onClick={() => handleDigitalSignature("cfm_vidaas")} className="gap-3 p-3 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
-                                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                                    <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" /></svg>
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className="font-semibold text-sm">CFM (Vidaas)</span>
-                                    <span className="text-xs text-muted-foreground mt-0.5">Assinatura Gratuita em Nuvem</span>
-                                </div>
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator className="my-1"/>
-                            <DropdownMenuItem onClick={() => handleDigitalSignature("certillion")} className="gap-3 p-3 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
-                                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                                    <Laptop className="w-5 h-5 text-blue-600" />
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className="font-semibold text-sm">Certificado Digital via Nuvem</span>
-                                    <span className="text-xs text-muted-foreground mt-0.5">e-CPF A3 Token Prévio</span>
-                                </div>
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="flex items-center gap-3 w-full sm:w-auto">
+                                <Button 
+                                    variant="ghost" 
+                                    onClick={handlePrint} 
+                                    className="h-12 gap-2 text-muted-foreground hover:bg-muted hover:text-foreground rounded-xl font-medium"
+                                >
+                                    <FileText className="w-4 h-4" />
+                                    Exportar PDF
+                                </Button>
+                            </div>
 
-                    {/* Secondary Ghost Button */}
-                    <Button 
-                        variant="ghost" 
-                        onClick={handlePrint} 
-                        disabled={!generated} 
-                        className="w-full sm:w-auto h-12 gap-2 text-muted-foreground hover:bg-muted hover:text-foreground rounded-xl font-medium transition-colors"
-                    >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
-                        Exportar PDF
-                    </Button>
+                            <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+                                <Button
+                                    variant="outline"
+                                    onClick={handleSave}
+                                    disabled={isSavingDoc}
+                                    className="w-full sm:w-auto h-12 gap-2 border-border text-foreground hover:bg-muted rounded-xl font-medium px-6"
+                                >
+                                    {isSavingDoc ? (
+                                        <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                                    ) : (
+                                        <Save className="w-4 h-4" />
+                                    )}
+                                    Salvar
+                                </Button>
+
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button 
+                                            disabled={isSigning} 
+                                            className="w-full sm:w-auto h-14 gap-2 bg-[#8da78d] hover:bg-[#7e967e] text-white rounded-2xl shadow-lg hover:shadow-xl px-8 font-bold text-base transition-all hover:-translate-y-0.5"
+                                        >
+                                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                            {isSigning ? "Iniciando..." : "Assinar Digitalmente"}
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-[280px] rounded-2xl p-2 shadow-2xl border-border/60">
+                                        <DropdownMenuItem onClick={() => handleDigitalSignature("cfm_vidaas")} className="gap-3 p-3 rounded-xl cursor-pointer hover:bg-muted/50 transition-colors">
+                                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                                <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" /></svg>
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className="font-semibold text-sm">CFM (Vidaas)</span>
+                                                <span className="text-xs text-muted-foreground mt-0.5">Assinatura Gratuita em Nuvem</span>
+                                            </div>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator className="my-1"/>
+                                        <DropdownMenuItem onClick={() => handleDigitalSignature("certillion")} className="gap-3 p-3 rounded-xl cursor-pointer hover:bg-muted/50 transition-colors">
+                                            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                                                <Laptop className="w-5 h-5 text-blue-600" />
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className="font-semibold text-sm">Certificado Digital via Nuvem</span>
+                                                <span className="text-xs text-muted-foreground mt-0.5">e-CPF A3 Token Prévio</span>
+                                            </div>
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                        </>
+                    )}
                 </DialogFooter>
             </DialogContent>
         </Dialog>
