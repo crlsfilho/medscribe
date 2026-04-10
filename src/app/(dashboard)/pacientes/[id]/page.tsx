@@ -264,12 +264,11 @@ export default function PatientDetailPage() {
               <h1 className="text-2xl font-semibold text-foreground">
                 {patient.name}
               </h1>
-              <p className="text-muted-foreground">
-                {patient.age ? `${patient.age} anos` : "Idade nao informada"} •{" "}
-                {patient.sex || "Sexo nao informado"}
+              <p className="text-sm text-muted-foreground mt-1 max-w-md leading-relaxed">
+                Paciente {patient.sex ? (patient.sex.toLowerCase().startsWith('f') ? 'do sexo feminino' : 'do sexo masculino') : 'com sexo não informado'}, com {patient.age ? `${patient.age} anos` : "idade não informada"}. {patient.phoneNumber ? `Contato via ${patient.phoneNumber}.` : ""}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                Cadastrado em {formatDateShort(patient.createdAt)}
+                Acompanhamento desde {new Date(patient.createdAt).getFullYear()}
               </p>
             </div>
           </div>
@@ -317,7 +316,7 @@ export default function PatientDetailPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         <div className="medical-card p-4">
           <p className="text-xs text-muted-foreground mb-1">Total de Consultas</p>
           <p className="text-2xl font-semibold text-foreground">
@@ -325,19 +324,7 @@ export default function PatientDetailPage() {
           </p>
         </div>
         <div className="medical-card p-4">
-          <p className="text-xs text-muted-foreground mb-1">Concluidas</p>
-          <p className="text-2xl font-semibold text-green-600">
-            {patient.visits.filter((v) => v.soapJson).length}
-          </p>
-        </div>
-        <div className="medical-card p-4">
-          <p className="text-xs text-muted-foreground mb-1">Em Andamento</p>
-          <p className="text-2xl font-semibold text-yellow-600">
-            {patient.visits.filter((v) => v.transcriptText && !v.soapJson).length}
-          </p>
-        </div>
-        <div className="medical-card p-4">
-          <p className="text-xs text-muted-foreground mb-1">Ultima Consulta</p>
+          <p className="text-xs text-muted-foreground mb-1">Última Consulta</p>
           <p className="text-sm font-medium text-foreground">
             {patient.visits.length > 0
               ? formatDateShort(patient.visits[0].createdAt)
@@ -355,7 +342,7 @@ export default function PatientDetailPage() {
           <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 5.25v18.75A2.25 2.25 0 004.5 26.25h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-3.939a1.5 1.5 0 00-1.06.44l-2.122 2.12z" />
           </svg>
-          Galeria de Arquivos e Documentos
+          Arquivos e Documentos
         </h2>
         
         {(() => {
@@ -369,7 +356,7 @@ export default function PatientDetailPage() {
 
           if (allDocs.length === 0) {
             return (
-              <div className="medical-card p-8 border-dashed border-2 flex flex-col items-center justify-center text-center">
+              <div className="medical-card p-6 border-dashed border-2 flex flex-col items-center justify-center text-center">
                 <p className="text-sm text-muted-foreground uppercase tracking-wider font-medium mb-1">Nenhum documento</p>
                 <p className="text-xs text-muted-foreground/60">Exames e receitas aparecerão aqui.</p>
               </div>
@@ -377,16 +364,17 @@ export default function PatientDetailPage() {
           }
 
           return (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="flex overflow-x-auto gap-4 pb-4 snap-x snap-mandatory pt-1 -mx-4 px-4 sm:mx-0 sm:px-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              <style dangerouslySetInnerHTML={{__html: `::-webkit-scrollbar { display: none; }`}} />
               {allDocs.map((doc: any) => {
                 const isPatientUpload = doc.type === "exam_result";
                 const docUrl = doc.metadata.url || "#";
                 const filename = doc.metadata.filename || "Documento";
                 
                 return (
-                  <div key={doc.id} className="medical-card p-4 hover:border-primary/50 transition-all group">
+                  <div key={doc.id} className="medical-card flex-shrink-0 w-[240px] p-4 hover:border-primary/50 transition-all snap-start group bg-background relative overflow-hidden">
                     <div className="flex items-start justify-between mb-3">
-                      <div className={`p-2 rounded-lg ${isPatientUpload ? 'bg-orange-50 text-orange-600' : 'bg-blue-50 text-blue-600'}`}>
+                      <div className={`p-2 rounded-lg relative z-10 ${isPatientUpload ? 'bg-orange-50 text-orange-600' : 'bg-blue-50 text-blue-600'}`}>
                         {isPatientUpload ? (
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
@@ -397,23 +385,23 @@ export default function PatientDetailPage() {
                           </svg>
                         )}
                       </div>
-                      <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${isPatientUpload ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>
+                      <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full relative z-10 ${isPatientUpload ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>
                         {isPatientUpload ? "Paciente" : "Médico"}
                       </span>
                     </div>
                     
-                    <h4 className="font-medium text-sm text-foreground line-clamp-1 mb-1" title={filename}>
+                    <h4 className="font-medium text-sm text-foreground line-clamp-1 mb-1 relative z-10" title={filename}>
                       {filename}
                     </h4>
-                    <p className="text-[11px] text-muted-foreground mb-4">
-                      {isPatientUpload ? "Enviado em " : "Gerado em "} 
+                    <p className="text-[11px] text-muted-foreground mb-4 relative z-10">
+                      {isPatientUpload ? "Recebido em " : "Criado em "} 
                       {formatDateShort(doc.createdAt)}
                     </p>
                     
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      className="w-full text-xs h-8 group-hover:bg-primary group-hover:text-white transition-all"
+                      className="w-full text-xs h-8 group-hover:bg-primary group-hover:text-primary-foreground transition-all relative z-10"
                       onClick={() => window.open(docUrl, '_blank')}
                     >
                       Visualizar
