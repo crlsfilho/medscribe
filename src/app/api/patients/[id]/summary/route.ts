@@ -52,7 +52,7 @@ export async function POST(
     const prompt = `Você é um assistente clínico de inteligência artificial analisando o histórico de consultas de um paciente.
 Baseado EXCLUSIVAMENTE nas transcrições e notas abaixo, produza um JSON com dois campos:
 1. "clinicalSummary": Um resumo em texto contínuo, em no máximo 2 linhas (bem conciso), sobre o estado de saúde do paciente e os tratamentos em andamento.
-2. "conditions": Um array de strings representando as principais condições crônicas ou diagnósticos identificados (ex: ["Hipertensão", "Ansiedade']). Se não houver, retorne uma lista vazia.
+2. "conditions": Um array de strings representando EXCLUSIVAMENTE condições SISTÊMICAS e CRÔNICAS que acompanham o paciente a longo prazo (ex: ["Hipertensão", "Diabetes", "Insuficiência Cardíaca", "Ansiedade"]). IGNORAR COMPLETAMENTE condições e queixas agudas ou temporárias (como "Dispepsia", "Tosse", "Dor nas costas", "Resfriado"). Se não houver doença crônica clara, retorne uma lista vazia.
 
 Responda APENAS com o JSON válido.
 

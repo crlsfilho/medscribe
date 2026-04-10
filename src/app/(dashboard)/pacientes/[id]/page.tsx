@@ -356,10 +356,24 @@ export default function PatientDetailPage() {
       {/* Cards de status removidos e unificados no cabecalho */}
 
       {/* Clinical Summary Section */}
-      <div className="space-y-3">
-        <h2 className="text-lg font-semibold text-foreground">
-          Resumo Clínico
-        </h2>
+      <div className="space-y-3 relative group">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-foreground">
+            Resumo Clínico
+          </h2>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-8 px-2 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+            onClick={() => {
+              toast.info("Lendo histórico...");
+              setPatient(prev => prev ? { ...prev, clinicalSummary: null } : prev);
+            }}
+          >
+            <svg className="w-3.5 h-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+            Atualizar IA
+          </Button>
+        </div>
         <div>
           {!patient.clinicalSummary ? (
             <div className="animate-pulse flex space-x-4">
