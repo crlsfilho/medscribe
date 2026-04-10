@@ -16,7 +16,7 @@ export interface Appointment {
   visitId: string | null;
 }
 
-type ViewMode = "week" | "month";
+type ViewMode = "day" | "week" | "month";
 
 const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"];
 const WEEKDAYS_FULL = [
@@ -111,7 +111,7 @@ function formatTime(dateString: string): string {
 }
 
 export function Calendar() {
-  const [viewMode, setViewMode] = useState<ViewMode>("week");
+  const [viewMode, setViewMode] = useState<ViewMode>("day");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -128,7 +128,10 @@ export function Calendar() {
       let startDate: Date;
       let endDate: Date;
 
-      if (viewMode === "week") {
+      if (viewMode === "day") {
+        startDate = new Date(currentDate);
+        endDate = new Date(currentDate);
+      } else if (viewMode === "week") {
         const weekDays = getWeekDays(currentDate);
         startDate = weekDays[0];
         endDate = weekDays[6];
@@ -170,7 +173,9 @@ export function Calendar() {
 
   const navigatePrevious = () => {
     const newDate = new Date(currentDate);
-    if (viewMode === "week") {
+    if (viewMode === "day") {
+      newDate.setDate(newDate.getDate() - 1);
+    } else if (viewMode === "week") {
       newDate.setDate(newDate.getDate() - 7);
     } else {
       newDate.setMonth(newDate.getMonth() - 1);
@@ -180,7 +185,9 @@ export function Calendar() {
 
   const navigateNext = () => {
     const newDate = new Date(currentDate);
-    if (viewMode === "week") {
+    if (viewMode === "day") {
+      newDate.setDate(newDate.getDate() + 1);
+    } else if (viewMode === "week") {
       newDate.setDate(newDate.getDate() + 7);
     } else {
       newDate.setMonth(newDate.getMonth() + 1);
@@ -235,13 +242,17 @@ export function Calendar() {
   const monthWeeks = getMonthDays(currentDate);
 
   const getHeaderText = () => {
+    if (viewMode === "day") {
+      const isToday = isSameDay(currentDate, today);
+      return isToday ? "Hoje" : `${currentDate.getDate()} de ${MONTHS[currentDate.getMonth()]}`;
+    }
     if (viewMode === "week") {
       const start = weekDays[0];
       const end = weekDays[6];
       if (start.getMonth() === end.getMonth()) {
-        return `${start.getDate()} - ${end.getDate()} de ${MONTHS[start.getMonth()]} ${start.getFullYear()}`;
+        return `${start.getDate()} - ${end.getDate()} ${MONTHS[start.getMonth()].slice(0, 3)}.`;
       }
-      return `${start.getDate()} ${MONTHS[start.getMonth()].slice(0, 3)} - ${end.getDate()} ${MONTHS[end.getMonth()].slice(0, 3)} ${end.getFullYear()}`;
+      return `${start.getDate()} ${MONTHS[start.getMonth()].slice(0, 3)}. - ${end.getDate()} ${MONTHS[end.getMonth()].slice(0, 3)}.`;
     }
     return `${MONTHS[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
   };
@@ -261,6 +272,16 @@ export function Calendar() {
           <div className="flex items-center gap-2">
             {/* View Toggle */}
             <div className="flex rounded-lg bg-muted p-1">
+              <button
+                onClick={() => setViewMode("day")}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                  viewMode === "day"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Dia
+              </button>
               <button
                 onClick={() => setViewMode("week")}
                 className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
@@ -336,6 +357,47 @@ export function Calendar() {
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : viewMode === "day" ? (
+        <div className="flex flex-col min-h-[250px] p-4 gap-3 bg-muted/5">
+          {(() => {
+            const dayAppointments = getAppointmentsForDay(currentDate);
+            if (dayAppointments.length === 0) {
+              return (
+                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground opacity-70">
+                  <svg className="w-12 h-12 mb-3 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  <p>Sua agenda está livre neste dia.</p>
+                </div>
+              );
+            }
+            return dayAppointments.map((apt) => (
+              <div 
+                key={apt.id} 
+                onClick={(e) => handleAppointmentClick(e, apt)}
+                className={`p-4 rounded-xl border flex items-center justify-between cursor-pointer transition-colors ${
+                  apt.status === "completed" ? "bg-primary/5 border-primary/20" : "bg-card hover:bg-muted/50 border-border"
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-accent/50 flex items-center justify-center text-accent-foreground font-medium text-lg">
+                    {apt.patientName[0].toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground text-sm flex items-center gap-2">
+                       {apt.patientName} {apt.patientAge ? <span className="text-muted-foreground text-xs font-normal">• {apt.patientAge} anos</span> : ''}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-0.5 flex items-center gap-1.5">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      {formatTime(apt.scheduledAt)}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-2">
+                   <Button variant="ghost" size="sm" className="h-8 px-2 text-primary bg-primary/5">Acessar</Button>
+                </div>
+              </div>
+            ));
+          })()}
         </div>
       ) : viewMode === "week" ? (
         // Week View

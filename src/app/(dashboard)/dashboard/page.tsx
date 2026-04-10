@@ -162,37 +162,15 @@ export default function DashboardPage() {
                     <h1 className="text-2xl font-semibold text-foreground">
                         {getGreeting()}, {getUserTitle()}
                     </h1>
-                    <div className="space-y-4 mt-2">
-                        <p className="text-muted-foreground">
-                            {todayVisits.length === 0
-                                ? "Seu dia esta livre para novos atendimentos"
-                                : `${todayVisits.length} ${todayVisits.length === 1 ? "atendimento registrado" : "atendimentos registrados"} hoje`}
-                            <span className="text-muted-foreground/30 mx-2">•</span>
-                            <span className="text-sm font-medium text-foreground/80">Total: {monthVisits.length} consultas/mês</span>
+                    <div className="space-y-1 mt-1">
+                        <p className="text-muted-foreground text-sm flex items-center gap-2">
+                            <span><strong className="text-foreground">{todayVisits.length}</strong> consultas hoje</span>
+                            <span className="text-muted-foreground/30">•</span>
+                            <span><strong className="text-foreground">{monthVisits.length}</strong> no mês</span>
                         </p>
-                        <MedicalNews />
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    <TussSyncButton />
-                    <Link href="/consulta/nova">
-                        <Button size="lg" className="tap-target gap-2 rounded-xl shadow-sm">
-                            <svg
-                                className="w-5 h-5"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                                strokeWidth={2}
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    d="M12 4.5v15m7.5-7.5h-15"
-                                />
-                            </svg>
-                            Novo Atendimento
-                        </Button>
-                    </Link>
                 </div>
             </div>
 
@@ -232,63 +210,7 @@ export default function DashboardPage() {
             {/* Calendar */}
             <Calendar />
 
-            <div className="medical-card p-6">
-                <p className="section-header">Iniciar Atendimento</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <Link href="/consulta/nova">
-                        <div className="flex items-center gap-4 p-4 rounded-xl bg-primary/5 hover:bg-primary/10 transition-colors cursor-pointer">
-                            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                                <svg
-                                    className="w-6 h-6 text-primary"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                    strokeWidth={1.5}
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"
-                                    />
-                                </svg>
-                            </div>
-                            <div>
-                                <p className="font-medium text-foreground">Gravar Consulta</p>
-                                <p className="text-sm text-muted-foreground">
-                                    Capturar audio do atendimento
-                                </p>
-                            </div>
-                        </div>
-                    </Link>
-                    <Link href="/consulta/nova">
-                        <div className="flex items-center gap-4 p-4 rounded-xl bg-muted hover:bg-muted/80 transition-colors cursor-pointer">
-                            <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center">
-                                <svg
-                                    className="w-6 h-6 text-secondary-foreground"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                    strokeWidth={1.5}
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
-                                    />
-                                </svg>
-                            </div>
-                            <div>
-                                <p className="font-medium text-foreground">Importar Audio</p>
-                                <p className="text-sm text-muted-foreground">
-                                    Enviar arquivo gravado
-                                </p>
-                            </div>
-                        </div>
-                    </Link>
-                </div>
-            </div>
-
-
+            {/* Quick Actions removed to prioritize bottom nav and calendar */}
 
             {/* Recent Visits */}
             <div>
@@ -408,6 +330,11 @@ export default function DashboardPage() {
                         })}
                     </div>
                 )}
+            </div>
+
+            {/* Medical News Moved to Bottom */}
+            <div className="py-2">
+                <MedicalNews />
             </div>
 
             {/* Footer Note */}
