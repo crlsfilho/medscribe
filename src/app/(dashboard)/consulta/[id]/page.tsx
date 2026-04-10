@@ -14,6 +14,12 @@ import { DocumentModal } from "@/components/document-modal";
 import { ActiveAgentPanel } from "@/components/active-agent";
 import { generateSOAPPDF, generateSOAPText } from "@/lib/pdf";
 import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Visit {
   id: string;
@@ -326,20 +332,6 @@ export default function ConsultaPage() {
           )}
         </div>
       </div>
-
-      {/* Bottom Half: Evidence Assist */}
-      <div className="flex-1 flex flex-col min-h-0 border border-border rounded-xl shadow-sm overflow-hidden">
-        <DiagnosticPanel
-          transcript={transcript}
-          soapContext={{
-            chiefComplaint: soap.subjective.chiefComplaint,
-            age: visit?.patient?.age,
-            sex: visit?.patient?.sex,
-            vitals: soap.objective.vitalSigns
-          }}
-          className="h-full border-0 rounded-none shadow-none"
-        />
-      </div>
     </div>
   );
 
@@ -367,17 +359,29 @@ export default function ConsultaPage() {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto pb-1 sm:pb-0">
-          <Button variant="outline" size="sm" onClick={() => setShowDocModal(true)} className="gap-1.5 sm:gap-2 text-indigo-600 border-indigo-200 hover:bg-indigo-50 shrink-0 h-8 sm:h-9 px-2 sm:px-3">
-            <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-            <span className="hidden sm:inline">Emitir Documento</span>
-            <span className="inline sm:hidden text-xs">Documento</span>
-          </Button>
-          <Button variant="ghost" size="sm" onClick={handleExportPDF} disabled={!hasSOAP} className="shrink-0 h-8 sm:h-9 px-2 sm:px-3">
-            <span className="hidden sm:inline">Exportar Prontuário</span>
-            <span className="inline sm:hidden text-xs">Exportar</span>
-          </Button>
-          <Button onClick={handleSave} disabled={saving} size="sm" className="gap-2 shrink-0 h-8 sm:h-9 px-3 sm:px-4">
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 sm:h-9 px-2 sm:px-3">
+                <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                </svg>
+                <span className="hidden sm:inline">Mais Ações</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setShowDocModal(true)}>
+                <svg className="w-4 h-4 mr-2 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                Emitir Documento
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportPDF} disabled={!hasSOAP}>
+                <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                Exportar Prontuário
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Button onClick={handleSave} disabled={saving} size="sm" className="gap-2 shrink-0 h-8 sm:h-9 px-3 sm:px-4 bg-[#142d22] hover:bg-[#142d22]/90">
             {saving ? "Salvando..." : (
               <>
                 <span className="hidden sm:inline">Salvar Prontuário</span>
@@ -410,7 +414,24 @@ export default function ConsultaPage() {
               </Button>
             </div>
           ) : (
-            <SOAPEditor soap={soap} onChange={setSoap} />
+            <SOAPEditor 
+              soap={soap} 
+              onChange={setSoap}
+              assessmentPanel={
+                <div className="flex flex-col bg-muted/30 border border-border rounded-xl shadow-sm overflow-hidden">
+                  <DiagnosticPanel
+                    transcript={transcript}
+                    soapContext={{
+                      chiefComplaint: soap.subjective.chiefComplaint,
+                      age: visit?.patient?.age,
+                      sex: visit?.patient?.sex,
+                      vitals: soap.objective.vitalSigns
+                    }}
+                    className="h-full border-0 rounded-none shadow-none"
+                  />
+                </div>
+              }
+            />
           )}
 
           {suggestions.length > 0 && (

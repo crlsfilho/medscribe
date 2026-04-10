@@ -152,13 +152,13 @@ export function ActiveAgentPanel({
     }
   };
 
-  const pendingItems = items.filter((i) => i.status === "suggested");
+  const pendingItems = items.filter((i) => i.status === "suggested" && i.confidence >= 0.75);
 
   if (loading) {
     return (
-      <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl p-4">
-        <div className="flex items-center gap-2 text-indigo-600">
-          <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+      <div className="bg-card border border-border rounded-xl p-4">
+        <div className="flex items-center gap-2 text-foreground/70">
+          <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           <span className="text-sm font-medium">Carregando assistente...</span>
         </div>
       </div>
@@ -167,15 +167,15 @@ export function ActiveAgentPanel({
 
   return (
     <>
-      <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl overflow-hidden">
+      <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
         {/* Header */}
         <div className="flex items-center justify-between">
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="flex-1 px-4 py-3 flex items-center gap-2 hover:bg-indigo-100/50 transition-colors"
+            className="flex-1 px-4 py-3 flex items-center gap-2 hover:bg-muted/50 transition-colors"
           >
             <svg
-              className="w-5 h-5 text-indigo-600"
+              className="w-5 h-5 text-muted-foreground"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -187,9 +187,9 @@ export function ActiveAgentPanel({
                 d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z"
               />
             </svg>
-            <span className="font-medium text-gray-900">Assistente IA</span>
+            <span className="font-medium text-foreground">Assistente de Ações</span>
             {pendingItems.length > 0 && (
-              <span className="bg-indigo-600 text-white text-xs px-2 py-0.5 rounded-full">
+              <span className="bg-primary/10 text-primary font-bold text-[10px] px-2 py-0.5 rounded-full">
                 {pendingItems.length}
               </span>
             )}
@@ -226,11 +226,11 @@ export function ActiveAgentPanel({
                 <button
                   onClick={runDetection}
                   disabled={detecting}
-                  className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-indigo-600 bg-white border border-indigo-200 rounded-lg hover:bg-indigo-50 disabled:opacity-50 transition-colors"
+                  className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-foreground bg-background border border-border rounded-lg hover:bg-muted disabled:opacity-50 transition-colors"
                 >
                   {detecting ? (
                     <>
-                      <div className="w-3 h-3 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                      <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                       Analisando...
                     </>
                   ) : (
@@ -258,7 +258,7 @@ export function ActiveAgentPanel({
               <button
                 onClick={runDetection}
                 disabled={detecting}
-                className="w-full text-center py-2 text-xs text-indigo-600 hover:text-indigo-800 disabled:opacity-50"
+                className="w-full text-center py-2 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50 transition-colors"
               >
                 {detecting ? "Analisando..." : "Analisar novamente"}
               </button>

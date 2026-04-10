@@ -11,29 +11,26 @@ const ITEM_CONFIG = {
   tiss_form: {
     title: "Guia TISS",
     actionLabel: "Gerar Guia",
-    color: "green",
-    bgColor: "bg-green-50",
-    borderColor: "border-green-200",
-    iconColor: "text-green-600",
-    buttonColor: "bg-green-600 hover:bg-green-700",
+    bgColor: "bg-card",
+    borderColor: "border-border",
+    iconColor: "text-muted-foreground",
+    buttonColor: "bg-primary hover:bg-primary/90 text-primary-foreground",
   },
   referral_letter: {
     title: "Encaminhamento",
     actionLabel: "Criar Carta",
-    color: "purple",
-    bgColor: "bg-purple-50",
-    borderColor: "border-purple-200",
-    iconColor: "text-purple-600",
-    buttonColor: "bg-purple-600 hover:bg-purple-700",
+    bgColor: "bg-card",
+    borderColor: "border-border",
+    iconColor: "text-muted-foreground",
+    buttonColor: "bg-primary hover:bg-primary/90 text-primary-foreground",
   },
   follow_up: {
     title: "Retorno",
     actionLabel: "Agendar",
-    color: "blue",
-    bgColor: "bg-blue-50",
-    borderColor: "border-blue-200",
-    iconColor: "text-blue-600",
-    buttonColor: "bg-blue-600 hover:bg-blue-700",
+    bgColor: "bg-card",
+    borderColor: "border-border",
+    iconColor: "text-muted-foreground",
+    buttonColor: "bg-primary hover:bg-primary/90 text-primary-foreground",
   },
 };
 
@@ -62,10 +59,10 @@ export function ActionableItemCard({ item, onAction }: ActionableItemCardProps) 
   const confidence = getConfidenceLabel(item.confidence);
 
   return (
-    <div className={`${config.bgColor} ${config.borderColor} border rounded-lg p-3`}>
+    <div className={`bg-card md:bg-white border-border border rounded-lg p-3 shadow-sm`}>
       <div className="flex items-start gap-3">
         {/* Icon */}
-        <div className={`p-2 rounded-lg bg-white shadow-sm`}>
+        <div className={`p-2 rounded-lg bg-muted/30 border border-border shadow-sm`}>
           {item.type === "tiss_form" && (
             <svg
               className={`w-5 h-5 ${config.iconColor}`}
@@ -138,7 +135,7 @@ export function ActionableItemCard({ item, onAction }: ActionableItemCardProps) 
       <div className="flex gap-2 mt-3">
         <button
           onClick={() => onAction("dismiss")}
-          className="flex-1 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+          className="flex-1 px-3 py-1.5 text-xs font-medium text-muted-foreground bg-background border border-border rounded-lg hover:bg-muted transition-colors"
         >
           Dispensar
         </button>

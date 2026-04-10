@@ -34,6 +34,7 @@ interface SOAPEditorProps {
   soap: SOAPData;
   onChange: (soap: SOAPData) => void;
   readOnly?: boolean;
+  assessmentPanel?: React.ReactNode;
 }
 
 interface CollapsibleSectionProps {
@@ -75,9 +76,6 @@ function CollapsibleSection({
           )}
         </div>
         <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-          <span className="hidden sm:inline text-xs text-muted-foreground whitespace-nowrap">
-            Organizado por IA
-          </span>
           <svg
             className={`w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground transition-transform ${isOpen ? "rotate-180" : ""}`}
             fill="none"
@@ -114,6 +112,7 @@ export function SOAPEditor({
   soap,
   onChange,
   readOnly = false,
+  assessmentPanel,
 }: SOAPEditorProps) {
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     subjective: true,
@@ -174,11 +173,13 @@ export function SOAPEditor({
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-foreground">Nota SOAP</h2>
-          <p className="text-sm text-muted-foreground">
-            Estrutura clinica organizada por IA
-          </p>
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+            Nota Estruturada
+            <span className="text-[10px] bg-muted text-muted-foreground px-2 py-0.5 rounded-full font-medium" title="Gerado e estruturado por Inteligência Artificial">
+              IA Assistida
+            </span>
+          </h2>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -194,27 +195,6 @@ export function SOAPEditor({
             Recolher tudo
           </button>
         </div>
-      </div>
-
-      {/* AI Notice */}
-      <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-[oklch(0.95_0.03_80)] border border-[oklch(0.85_0.08_80)]">
-        <svg
-          className="w-5 h-5 text-[oklch(0.55_0.15_80)]"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={1.5}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z"
-          />
-        </svg>
-        <span className="text-sm text-[oklch(0.40_0.10_80)]">
-          <strong>Conteudo gerado por IA</strong> - Revise todas as informacoes
-          antes de utilizar clinicamente
-        </span>
       </div>
 
       {/* Sections */}
@@ -430,6 +410,12 @@ export function SOAPEditor({
                 className="rounded-xl resize-none"
               />
             </div>
+            {/* Inject AI Diagnostic Panel Here */}
+            {assessmentPanel && (
+              <div className="mt-6 pt-6 border-t border-border border-dashed">
+                {assessmentPanel}
+              </div>
+            )}
           </div>
         </CollapsibleSection>
 
