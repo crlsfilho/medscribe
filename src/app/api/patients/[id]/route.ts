@@ -32,6 +32,9 @@ export async function GET(
         include: {
             visits: {
                 orderBy: { createdAt: "desc" },
+                include: {
+                    actionableItems: true, // Fetch documents/actions for each visit
+                }
             },
             appointments: {
                 orderBy: { scheduledAt: "desc" },

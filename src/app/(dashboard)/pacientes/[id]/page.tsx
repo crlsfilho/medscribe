@@ -349,99 +349,82 @@ export default function PatientDetailPage() {
       {/* Actions */}
       {/* Actions Grid */}
       <div className="grid gap-4 md:grid-cols-3">
-        {/* Portal Access */}
-        <div className="medical-card p-4 space-y-3">
-          <h3 className="font-medium flex items-center gap-2 text-foreground">
-            <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
-            Portal do Paciente
-          </h3>
-          <p className="text-sm text-muted-foreground">Link público para acesso a exames e receitas.</p>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="flex-1" onClick={() => {
-              if (!patient.shareToken) return toast.error("Paciente sem token");
-              const url = `${window.location.origin}/p/portal/${patient.shareToken}`;
-              navigator.clipboard.writeText(url);
-              toast.success("Link do portal copiado!");
-            }}>
-              Copiar
-            </Button>
-            <WhatsappPortalButton
-              patientId={patient.id}
-              patientName={patient.name}
-              phoneNumber={patient.phoneNumber || null}
-              shareToken={patient.shareToken || null}
-            />
-          </div>
-        </div>
+      {/* Document Gallery */}
+      <div className="space-y-4">
+        <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+          <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 5.25v18.75A2.25 2.25 0 004.5 26.25h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-3.939a1.5 1.5 0 00-1.06.44l-2.122 2.12z" />
+          </svg>
+          Galeria de Arquivos e Documentos
+        </h2>
+        
+        {(() => {
+          const allDocs = patient.visits.flatMap(v => 
+            (v as any).actionableItems?.map((ai: any) => ({
+              ...ai,
+              visitDate: v.createdAt,
+              metadata: JSON.parse(ai.metadata || "{}")
+            })) || []
+          ).sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-        {/* Pre-Consultation */}
-        <div className="medical-card p-4 space-y-3">
-          <h3 className="font-medium flex items-center gap-2 text-foreground">
-            <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.101.433-.101.66 0 .79.33 1.5.86 2.016A2.25 2.25 0 0115 9c0 1.242.756 2.296 1.764 2.833M20.25 12a14.25 14.25 0 01-.285 2.199M15 21h-2.58A4.125 4.125 0 018.8 19.387l-2.071-1.282A2.75 2.75 0 015 15.753V8.818c0-.987.498-1.905 1.341-2.43 1.636-1.026 3.61-.92 5.176.223M15 21h2.25a2.25 2.25 0 002.25-2.25V13.5m0-1.096A13.882 13.882 0 0021 12m-6-1.551a3.003 3.003 0 01-3 0" /></svg>
-            Pré-Consulta
-          </h3>
-          {patient.appointments && patient.appointments.length > 0 ? (
-            <>
-              <p className="text-sm text-muted-foreground">
-                Para consulta de {new Date(patient.appointments[0].scheduledAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}.
-              </p>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="flex-1" onClick={() => {
-                  const token = patient.appointments![0].shareToken;
-                  if (!token) return toast.error("Erro no token da consulta");
-                  const url = `${window.location.origin}/p/form/${token}`;
-                  navigator.clipboard.writeText(url);
-                  toast.success("Link copiado!");
-                }}>
-                  Copiar
-                </Button>
-                <Button variant="outline" size="sm" className="text-green-600 border-green-200 hover:bg-green-50 px-3" onClick={() => {
-                  const token = patient.appointments![0].shareToken;
-                  if (!token) return toast.error("Erro no token");
-                  const url = `${window.location.origin}/p/form/${token}`;
-                  const msg = `Olá ${patient.name}, favor preencher este formulário antes da consulta: ${url}`;
-                  const phone = patient.phoneNumber?.replace(/\D/g, "");
-                  if (!phone) return toast.error("Paciente sem telefone");
-                  window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
-                }}>
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-8.68-2.031-9.67-.272-.099-.47-.149-.669-.149-.198 0-.42.001-.643.001-.223 0-.583.085-.89.421-.306.334-1.178 1.151-1.178 2.809 0 1.658 1.206 3.26 1.375 3.484.169.224 2.373 3.626 5.75 5.071.803.342 1.428.547 1.914.701.806.255 1.54.219 2.126.133.655-.096 1.758-.718 2.006-1.411.248-.693.248-1.288.173-1.413z" /></svg>
-                </Button>
+          if (allDocs.length === 0) {
+            return (
+              <div className="medical-card p-8 border-dashed border-2 flex flex-col items-center justify-center text-center">
+                <p className="text-sm text-muted-foreground uppercase tracking-wider font-medium mb-1">Nenhum documento</p>
+                <p className="text-xs text-muted-foreground/60">Exames e receitas aparecerão aqui.</p>
               </div>
-            </>
-          ) : (
-            <>
-              <p className="text-sm text-muted-foreground">Nenhuma consulta agendada.</p>
-              <Link href={`/consulta/nova?patientId=${patient.id}`}>
-                <Button variant="secondary" size="sm" className="w-full">Agendar Agora</Button>
-              </Link>
-            </>
-          )}
-        </div>
+            );
+          }
 
-        {/* Start Visit Shortcut */}
-        <div className="medical-card p-4 space-y-3 flex flex-col justify-center">
-          <Link
-            href={`/consulta/nova?patientId=${patient.id}&name=${encodeURIComponent(patient.name)}&age=${patient.age || ""}&sex=${patient.sex || ""}`}
-            className="w-full"
-          >
-            <Button className="gap-2 rounded-xl w-full h-auto py-4 text-base">
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"
-                />
-              </svg>
-              Iniciar Atendimento
-            </Button>
-          </Link>
-        </div>
+          return (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {allDocs.map((doc: any) => {
+                const isPatientUpload = doc.type === "exam_result";
+                const docUrl = doc.metadata.url || "#";
+                const filename = doc.metadata.filename || "Documento";
+                
+                return (
+                  <div key={doc.id} className="medical-card p-4 hover:border-primary/50 transition-all group">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className={`p-2 rounded-lg ${isPatientUpload ? 'bg-orange-50 text-orange-600' : 'bg-blue-50 text-blue-600'}`}>
+                        {isPatientUpload ? (
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                          </svg>
+                        ) : (
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                          </svg>
+                        )}
+                      </div>
+                      <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${isPatientUpload ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>
+                        {isPatientUpload ? "Paciente" : "Médico"}
+                      </span>
+                    </div>
+                    
+                    <h4 className="font-medium text-sm text-foreground line-clamp-1 mb-1" title={filename}>
+                      {filename}
+                    </h4>
+                    <p className="text-[11px] text-muted-foreground mb-4">
+                      {isPatientUpload ? "Enviado em " : "Gerado em "} 
+                      {formatDateShort(doc.createdAt)}
+                    </p>
+                    
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full text-xs h-8 group-hover:bg-primary group-hover:text-white transition-all"
+                      onClick={() => window.open(docUrl, '_blank')}
+                    >
+                      Visualizar
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
+      </div>
       </div>
 
       {/* Visits List */}
