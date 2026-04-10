@@ -286,13 +286,19 @@ export default function PatientDetailPage() {
               <h1 className="text-2xl font-semibold text-foreground">
                 {patient.name}
               </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                {patient.sex ? (patient.sex.toLowerCase().startsWith('f') ? 'Mulher' : 'Homem') : 'Paciente'}, {patient.age ? `${patient.age} anos` : "idade não informada"}{patient.phoneNumber ? ` • Contato: ${patient.phoneNumber}` : ""}
+              </p>
+              <p className="text-sm font-medium text-foreground mt-1">
+                Acompanhamento desde {new Date(patient.createdAt).getFullYear()} • {patient.visits.length} Consulta{patient.visits.length !== 1 ? 's' : ''} {patient.visits.length > 0 ? `(Última em ${formatDateShort(patient.visits[0].createdAt)})` : ''}
+              </p>
               {patient.conditions && patient.conditions !== "[]" && (
-                <div className="flex flex-wrap gap-2 mt-2">
+                <div className="flex flex-wrap gap-2 mt-3">
                   {(() => {
                     try {
                       const conds = JSON.parse(patient.conditions);
                       return conds.map((c: string, idx: number) => (
-                        <span key={idx} className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-100 uppercase tracking-wider">
+                        <span key={idx} className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100/80 text-red-800 uppercase tracking-wider">
                           {c}
                         </span>
                       ));
@@ -302,12 +308,6 @@ export default function PatientDetailPage() {
                   })()}
                 </div>
               )}
-              <p className="text-sm text-muted-foreground mt-2 max-w-md leading-relaxed">
-                Paciente {patient.sex ? (patient.sex.toLowerCase().startsWith('f') ? 'do sexo feminino' : 'do sexo masculino') : 'com sexo não informado'}, com {patient.age ? `${patient.age} anos` : "idade não informada"}. {patient.phoneNumber ? `Contato via ${patient.phoneNumber}.` : ""}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Acompanhamento desde {new Date(patient.createdAt).getFullYear()}
-              </p>
             </div>
           </div>
         </div>
@@ -353,67 +353,42 @@ export default function PatientDetailPage() {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="flex flex-wrap gap-4">
-        <div className="medical-card p-4 min-w-[150px] flex-1 sm:flex-none">
-          <p className="text-xs text-muted-foreground mb-1">Total de Consultas</p>
-          <p className="text-2xl font-semibold text-foreground">
-            {patient.visits.length}
-          </p>
-        </div>
-        <div className="medical-card p-4 min-w-[150px] flex-1 sm:flex-none">
-          <p className="text-xs text-muted-foreground mb-1">Última Consulta</p>
-          <p className="text-sm font-medium text-foreground">
-            {patient.visits.length > 0
-              ? formatDateShort(patient.visits[0].createdAt)
-              : "Nenhuma"}
-          </p>
-        </div>
-      </div>
+      {/* Cards de status removidos e unificados no cabecalho */}
 
-      {/* Clinical Summary AI Section */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-          <svg className="w-5 h-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09l2.846.813-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
-          </svg>
-          Resumo Clínico (Gerado por IA)
+      {/* Clinical Summary Section */}
+      <div className="space-y-3">
+        <h2 className="text-lg font-semibold text-foreground">
+          Resumo Clínico
         </h2>
-        <div className="medical-card p-5 bg-indigo-50/50 border-indigo-100">
+        <div>
           {!patient.clinicalSummary ? (
             <div className="animate-pulse flex space-x-4">
               <div className="flex-1 space-y-3 py-1">
-                <div className="h-4 bg-indigo-100 rounded w-3/4"></div>
-                <div className="h-4 bg-indigo-100 rounded w-5/6"></div>
-                <p className="text-xs text-indigo-400 mt-2">A inteligência artificial está lendo os registros e formulando o resumo...</p>
+                <div className="h-4 bg-muted rounded w-3/4"></div>
+                <div className="h-4 bg-muted rounded w-5/6"></div>
               </div>
             </div>
           ) : (
-            <p className="text-sm text-foreground leading-relaxed">
+            <p className="text-sm text-foreground leading-relaxed bg-muted/40 p-4 rounded-xl border border-muted/60">
               {patient.clinicalSummary}
             </p>
           )}
         </div>
       </div>
 
-      {/* Actions */}
-      {/* Actions Grid */}
-      <div className="grid gap-4 md:grid-cols-3">
-        {/* Portal Access */}
-        <div className="medical-card p-4 space-y-3">
-          <h3 className="font-medium flex items-center gap-2 text-foreground">
-            <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
-            Portal do Paciente
-          </h3>
-          <p className="text-sm text-muted-foreground">Link público para acesso a exames e receitas.</p>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="flex-1" onClick={() => {
+      {/* Management Actions */}
+      <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between border-y py-4 my-6">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Portal Access */}
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="sm" className="gap-2 text-muted-foreground" onClick={() => {
               if (!patient.shareToken) return toast.error("Paciente sem token");
               const url = `${window.location.origin}/p/portal/${patient.shareToken}`;
               navigator.clipboard.writeText(url);
               toast.success("Link do portal copiado!");
             }}>
-              Copiar
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" /></svg>
+              Copiar Portal
             </Button>
             <WhatsappPortalButton
               patientId={patient.id}
@@ -422,76 +397,51 @@ export default function PatientDetailPage() {
               shareToken={patient.shareToken || null}
             />
           </div>
-        </div>
 
-        {/* Pre-Consultation */}
-        <div className="medical-card p-4 space-y-3">
-          <h3 className="font-medium flex items-center gap-2 text-foreground">
-            <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.101.433-.101.66 0 .79.33 1.5.86 2.016A2.25 2.25 0 0115 9c0 1.242.756 2.296 1.764 2.833M20.25 12a14.25 14.25 0 01-.285 2.199M15 21h-2.58A4.125 4.125 0 018.8 19.387l-2.071-1.282A2.75 2.75 0 015 15.753V8.818c0-.987.498-1.905 1.341-2.43 1.636-1.026 3.61-.92 5.176.223M15 21h2.25a2.25 2.25 0 002.25-2.25V13.5m0-1.096A13.882 13.882 0 0021 12m-6-1.551a3.003 3.003 0 01-3 0" /></svg>
-            Pré-Consulta
-          </h3>
+          {/* Pre-Consultation */}
           {patient.appointments && patient.appointments.length > 0 ? (
-            <>
-              <p className="text-sm text-muted-foreground">
-                Para consulta de {new Date(patient.appointments[0].scheduledAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}.
-              </p>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="flex-1" onClick={() => {
-                  const token = patient.appointments![0].shareToken;
-                  if (!token) return toast.error("Erro no token da consulta");
-                  const url = `${window.location.origin}/p/form/${token}`;
-                  navigator.clipboard.writeText(url);
-                  toast.success("Link copiado!");
-                }}>
-                  Copiar
-                </Button>
-                <Button variant="outline" size="sm" className="text-green-600 border-green-200 hover:bg-green-50 px-3" onClick={() => {
-                  const token = patient.appointments![0].shareToken;
-                  if (!token) return toast.error("Erro no token");
-                  const url = `${window.location.origin}/p/form/${token}`;
-                  const msg = `Olá ${patient.name}, favor preencher este formulário antes da consulta: ${url}`;
-                  const phone = patient.phoneNumber?.replace(/\D/g, "");
-                  if (!phone) return toast.error("Paciente sem telefone");
-                  window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
-                }}>
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-8.68-2.031-9.67-.272-.099-.47-.149-.669-.149-.198 0-.42.001-.643.001-.223 0-.583.085-.89.421-.306.334-1.178 1.151-1.178 2.809 0 1.658 1.206 3.26 1.375 3.484.169.224 2.373 3.626 5.75 5.071.803.342 1.428.547 1.914.701.806.255 1.54.219 2.126.133.655-.096 1.758-.718 2.006-1.411.248-.693.248-1.288.173-1.413z" /></svg>
-                </Button>
-              </div>
-            </>
+            <Button variant="outline" size="sm" className="gap-2 text-muted-foreground" onClick={() => {
+              const token = patient.appointments![0].shareToken;
+              if (!token) return toast.error("Erro no token da consulta");
+              const url = `${window.location.origin}/p/form/${token}`;
+              navigator.clipboard.writeText(url);
+              toast.success("Pré-consulta copiada!");
+            }}>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.101.433-.101.66 0 .79.33 1.5.86 2.016A2.25 2.25 0 0115 9c0 1.242.756 2.296 1.764 2.833M20.25 12a14.25 14.25 0 01-.285 2.199M15 21h-2.58A4.125 4.125 0 018.8 19.387l-2.071-1.282A2.75 2.75 0 015 15.753V8.818c0-.987.498-1.905 1.341-2.43 1.636-1.026 3.61-.92 5.176.223M15 21h2.25a2.25 2.25 0 002.25-2.25V13.5m0-1.096A13.882 13.882 0 0021 12m-6-1.551a3.003 3.003 0 01-3 0" /></svg>
+              Copiar Pré-Consulta
+            </Button>
           ) : (
-            <>
-              <p className="text-sm text-muted-foreground">Nenhuma consulta agendada.</p>
-              <Link href={`/consulta/nova?patientId=${patient.id}`}>
-                <Button variant="secondary" size="sm" className="w-full">Agendar Agora</Button>
-              </Link>
-            </>
+            <Link href={`/consulta/nova?patientId=${patient.id}`}>
+              <Button variant="outline" size="sm" className="gap-2 text-muted-foreground">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                Agendar
+              </Button>
+            </Link>
           )}
         </div>
 
-        {/* Start Visit Shortcut */}
-        <div className="medical-card p-4 space-y-3 flex flex-col justify-center">
-          <Link
-            href={`/consulta/nova?patientId=${patient.id}&name=${encodeURIComponent(patient.name)}&age=${patient.age || ""}&sex=${patient.sex || ""}`}
-            className="w-full"
-          >
-            <Button className="gap-2 rounded-xl w-full h-auto py-4 text-base">
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"
-                />
-              </svg>
-              Iniciar Atendimento
-            </Button>
-          </Link>
-        </div>
+        {/* Start Visit Shortcut (Primary) */}
+        <Link
+          href={`/consulta/nova?patientId=${patient.id}&name=${encodeURIComponent(patient.name)}&age=${patient.age || ""}&sex=${patient.sex || ""}`}
+          className="w-full md:w-auto mt-4 md:mt-0"
+        >
+          <Button className="w-full md:w-auto gap-2 bg-green-600 hover:bg-green-700 text-white shadow-sm">
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"
+              />
+            </svg>
+            Iniciar Atendimento
+          </Button>
+        </Link>
       </div>
 
       {/* Document Gallery */}
@@ -721,6 +671,11 @@ export default function PatientDetailPage() {
           </div>
         )}
       </div>
+
+      {/* AI AI Disclaimer */}
+      <p className="text-center text-xs text-muted-foreground/50 mt-12 mb-8">
+        Resumos gerados automaticamente a partir do histórico clínico. Sempre revise os dados.
+      </p>
 
       {/* Edit Patient Modal */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
