@@ -37,6 +37,8 @@ model Patient {
   phoneNumber String? // WhatsApp
   shareToken String? @unique // Token fixo do paciente (Portal)
   shareTokenExpiresAt DateTime? // Expiracao do token do portal
+  clinicalSummary String? // Resumo clínico gerado por IA
+  conditions String? // JSON Array de condições (ex: ["Diabete", "Pressão Alta"])
   createdAt DateTime @default(now())
   visits    Visit[]
   appointments Appointment[]

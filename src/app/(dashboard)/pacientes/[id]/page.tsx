@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,8 @@ interface Patient {
   sex: string | null;
   phoneNumber: string | null;
   shareToken: string | null;
+  clinicalSummary?: string | null;
+  conditions?: string | null;
   createdAt: string;
   visits: Visit[];
   appointments?: { id: string, scheduledAt: string, shareToken: string | null }[];
@@ -46,6 +48,7 @@ export default function PatientDetailPage() {
   const [patient, setPatient] = useState<Patient | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const galleryRef = useRef<HTMLDivElement>(null);
 
   // Edit Modal State
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -70,9 +73,28 @@ export default function PatientDetailPage() {
     }
   }, [patientId]);
 
+  const generateSummary = useCallback(async (pid: string) => {
+    try {
+      const res = await fetch(`/api/patients/${pid}/summary`, { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        setPatient(prev => prev ? { ...prev, clinicalSummary: data.clinicalSummary, conditions: data.conditions } : prev);
+      }
+    } catch (err) {
+      console.error("Failed to generate summary", err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchPatient();
   }, [fetchPatient]);
+
+  useEffect(() => {
+    if (patient && !patient.clinicalSummary) {
+       generateSummary(patient.id);
+    }
+  }, [patient?.id, patient?.clinicalSummary, generateSummary]);
+
 
   const handleEditOpen = () => {
     if (patient) {
@@ -264,7 +286,23 @@ export default function PatientDetailPage() {
               <h1 className="text-2xl font-semibold text-foreground">
                 {patient.name}
               </h1>
-              <p className="text-sm text-muted-foreground mt-1 max-w-md leading-relaxed">
+              {patient.conditions && patient.conditions !== "[]" && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {(() => {
+                    try {
+                      const conds = JSON.parse(patient.conditions);
+                      return conds.map((c: string, idx: number) => (
+                        <span key={idx} className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-100 uppercase tracking-wider">
+                          {c}
+                        </span>
+                      ));
+                    } catch (e) {
+                      return null;
+                    }
+                  })()}
+                </div>
+              )}
+              <p className="text-sm text-muted-foreground mt-2 max-w-md leading-relaxed">
                 Paciente {patient.sex ? (patient.sex.toLowerCase().startsWith('f') ? 'do sexo feminino' : 'do sexo masculino') : 'com sexo não informado'}, com {patient.age ? `${patient.age} anos` : "idade não informada"}. {patient.phoneNumber ? `Contato via ${patient.phoneNumber}.` : ""}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
@@ -316,14 +354,14 @@ export default function PatientDetailPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="medical-card p-4">
+      <div className="flex flex-wrap gap-4">
+        <div className="medical-card p-4 min-w-[150px] flex-1 sm:flex-none">
           <p className="text-xs text-muted-foreground mb-1">Total de Consultas</p>
           <p className="text-2xl font-semibold text-foreground">
             {patient.visits.length}
           </p>
         </div>
-        <div className="medical-card p-4">
+        <div className="medical-card p-4 min-w-[150px] flex-1 sm:flex-none">
           <p className="text-xs text-muted-foreground mb-1">Última Consulta</p>
           <p className="text-sm font-medium text-foreground">
             {patient.visits.length > 0
@@ -333,17 +371,52 @@ export default function PatientDetailPage() {
         </div>
       </div>
 
+      {/* Clinical Summary AI Section */}
+      <div className="space-y-4">
+        <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+          <svg className="w-5 h-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09l2.846.813-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
+          </svg>
+          Resumo Clínico (Gerado por IA)
+        </h2>
+        <div className="medical-card p-5 bg-indigo-50/50 border-indigo-100">
+          {!patient.clinicalSummary ? (
+            <div className="animate-pulse flex space-x-4">
+              <div className="flex-1 space-y-3 py-1">
+                <div className="h-4 bg-indigo-100 rounded w-3/4"></div>
+                <div className="h-4 bg-indigo-100 rounded w-5/6"></div>
+                <p className="text-xs text-indigo-400 mt-2">A inteligência artificial está lendo os registros e formulando o resumo...</p>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-foreground leading-relaxed">
+              {patient.clinicalSummary}
+            </p>
+          )}
+        </div>
+      </div>
+
       {/* Actions */}
       {/* Actions Grid */}
       <div className="grid gap-4 md:grid-cols-3">
       {/* Document Gallery */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-          <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 5.25v18.75A2.25 2.25 0 004.5 26.25h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-3.939a1.5 1.5 0 00-1.06.44l-2.122 2.12z" />
-          </svg>
-          Arquivos e Documentos
-        </h2>
+      <div className="space-y-4 md:col-span-3 lg:col-span-1 border-b pb-6 md:border-b-0 md:pb-0">
+        <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+            <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 5.25v18.75A2.25 2.25 0 004.5 26.25h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-3.939a1.5 1.5 0 00-1.06.44l-2.122 2.12z" />
+            </svg>
+            Arquivos e Documentos
+            </h2>
+            <div className="hidden sm:flex gap-1">
+                <button onClick={() => galleryRef.current?.scrollBy({ left: -250, behavior: 'smooth' })} className="p-1.5 rounded-full hover:bg-muted text-muted-foreground">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
+                </button>
+                <button onClick={() => galleryRef.current?.scrollBy({ left: 250, behavior: 'smooth' })} className="p-1.5 rounded-full hover:bg-muted text-muted-foreground">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+                </button>
+            </div>
+        </div>
         
         {(() => {
           const allDocs = patient.visits.flatMap(v => 
@@ -364,7 +437,7 @@ export default function PatientDetailPage() {
           }
 
           return (
-            <div className="flex overflow-x-auto gap-4 pb-4 snap-x snap-mandatory pt-1 -mx-4 px-4 sm:mx-0 sm:px-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            <div ref={galleryRef} className="flex overflow-x-auto gap-4 pb-4 snap-x snap-mandatory mt-2 -mx-4 px-4 sm:mx-0 sm:px-0 scroll-smooth" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               <style dangerouslySetInnerHTML={{__html: `::-webkit-scrollbar { display: none; }`}} />
               {allDocs.map((doc: any) => {
                 const isPatientUpload = doc.type === "exam_result";
@@ -419,7 +492,7 @@ export default function PatientDetailPage() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-foreground">
-            Historico de Consultas
+            Histórico de Consultas
           </h2>
           <span className="text-sm text-muted-foreground">
             {patient.visits.length} registro{patient.visits.length !== 1 ? "s" : ""}
