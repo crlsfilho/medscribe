@@ -27,7 +27,7 @@ export function WhatsappPortalButton({ patientId, patientName, phoneNumber, shar
     return (
         <Button
             variant="outline"
-            className="gap-2 text-green-600 border-green-200 hover:bg-green-50"
+            className="gap-2 text-primary border-primary/20 hover:bg-primary/10"
             onClick={handleSend}
         >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">

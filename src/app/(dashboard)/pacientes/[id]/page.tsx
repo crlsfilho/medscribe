@@ -186,7 +186,7 @@ export default function PatientDetailPage() {
 
   const getVisitStatus = (visit: Visit) => {
     if (visit.soapJson) {
-      return { label: "Concluida", color: "bg-green-100 text-green-700" };
+      return { label: "Concluída", color: "bg-primary/15 text-primary" };
     }
     if (visit.transcriptText) {
       return { label: "Em andamento", color: "bg-yellow-100 text-yellow-700" };
@@ -298,7 +298,7 @@ export default function PatientDetailPage() {
                     try {
                       const conds = JSON.parse(patient.conditions);
                       return conds.map((c: string, idx: number) => (
-                        <span key={idx} className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100/80 text-red-800 uppercase tracking-wider">
+                        <span key={idx} className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-destructive/15 text-destructive uppercase tracking-wider">
                           {c}
                         </span>
                       ));
@@ -439,7 +439,7 @@ export default function PatientDetailPage() {
           href={`/consulta/nova?patientId=${patient.id}&name=${encodeURIComponent(patient.name)}&age=${patient.age || ""}&sex=${patient.sex || ""}`}
           className="w-full md:w-auto mt-4 md:mt-0"
         >
-          <Button className="w-full md:w-auto gap-2 bg-green-600 hover:bg-green-700 text-white shadow-sm">
+          <Button className="w-full md:w-auto gap-2 shadow-sm">
             <svg
               className="w-5 h-5"
               fill="none"
