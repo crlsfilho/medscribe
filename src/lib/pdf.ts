@@ -1,26 +1,5 @@
 import { jsPDF } from "jspdf";
-
-interface SOAPData {
-  subjective: {
-    chiefComplaint: string;
-    historyPresentIllness: string;
-  };
-  objective: {
-    vitalSigns: string;
-    physicalExam: string;
-    labResults: string;
-  };
-  assessment: {
-    diagnoses: string[];
-    differentials: string[];
-  };
-  plan: {
-    medications: string[];
-    procedures: string[];
-    instructions: string[];
-    followUp: string;
-  };
-}
+import { SOAPData } from "./prompts";
 
 interface PatientInfo {
   name: string;
@@ -144,6 +123,42 @@ export function generateSOAPPDF(data: ExportData): Blob {
     y += 3;
   }
 
+  if (data.soap.subjective.pastMedicalHistory) {
+    doc.setFont("helvetica", "bold");
+    doc.text("História Mórbida Pregressa:", margin, y);
+    y += lineHeight;
+    doc.setFont("helvetica", "normal");
+    addWrappedText(data.soap.subjective.pastMedicalHistory, margin, contentWidth);
+    y += 3;
+  }
+
+  if (data.soap.subjective.familyHistory) {
+    doc.setFont("helvetica", "bold");
+    doc.text("História Familiar:", margin, y);
+    y += lineHeight;
+    doc.setFont("helvetica", "normal");
+    addWrappedText(data.soap.subjective.familyHistory, margin, contentWidth);
+    y += 3;
+  }
+
+  if (data.soap.subjective.socialHistory) {
+    doc.setFont("helvetica", "bold");
+    doc.text("História Social:", margin, y);
+    y += lineHeight;
+    doc.setFont("helvetica", "normal");
+    addWrappedText(data.soap.subjective.socialHistory, margin, contentWidth);
+    y += 3;
+  }
+
+  if (data.soap.subjective.reviewOfSystems) {
+    doc.setFont("helvetica", "bold");
+    doc.text("Revisão por Sistemas:", margin, y);
+    y += lineHeight;
+    doc.setFont("helvetica", "normal");
+    addWrappedText(data.soap.subjective.reviewOfSystems, margin, contentWidth);
+    y += 3;
+  }
+
   y += 5;
 
   // Objective
@@ -193,18 +208,29 @@ export function generateSOAPPDF(data: ExportData): Blob {
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
 
-  if (data.soap.assessment.diagnoses.length > 0) {
+  if (data.soap.assessment.activeProblems && data.soap.assessment.activeProblems.length > 0) {
     doc.setFont("helvetica", "bold");
-    doc.text("Diagnósticos:", margin, y);
+    doc.text("Problemas Ativos:", margin, y);
     y += lineHeight;
     doc.setFont("helvetica", "normal");
-    data.soap.assessment.diagnoses.forEach((diag) => {
+    data.soap.assessment.activeProblems.forEach((prob) => {
+      addWrappedText(`• [${prob.status.toUpperCase()}] ${prob.name}`, margin + 5, contentWidth - 5);
+    });
+    y += 3;
+  }
+
+  if (data.soap.assessment.encounterDiagnoses && data.soap.assessment.encounterDiagnoses.length > 0) {
+    doc.setFont("helvetica", "bold");
+    doc.text("Diagnósticos da Consulta:", margin, y);
+    y += lineHeight;
+    doc.setFont("helvetica", "normal");
+    data.soap.assessment.encounterDiagnoses.forEach((diag) => {
       addWrappedText(`• ${diag}`, margin + 5, contentWidth - 5);
     });
     y += 3;
   }
 
-  if (data.soap.assessment.differentials.length > 0) {
+  if (data.soap.assessment.differentials && data.soap.assessment.differentials.length > 0) {
     doc.setFont("helvetica", "bold");
     doc.text("Diagnósticos Diferenciais:", margin, y);
     y += lineHeight;
@@ -212,6 +238,15 @@ export function generateSOAPPDF(data: ExportData): Blob {
     data.soap.assessment.differentials.forEach((diag) => {
       addWrappedText(`• ${diag}`, margin + 5, contentWidth - 5);
     });
+    y += 3;
+  }
+
+  if (data.soap.assessment.clinicalReasoning) {
+    doc.setFont("helvetica", "bold");
+    doc.text("Raciocínio Clínico:", margin, y);
+    y += lineHeight;
+    doc.setFont("helvetica", "normal");
+    addWrappedText(data.soap.assessment.clinicalReasoning, margin, contentWidth);
     y += 3;
   }
 
@@ -226,13 +261,26 @@ export function generateSOAPPDF(data: ExportData): Blob {
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
 
-  if (data.soap.plan.medications.length > 0) {
+  if (data.soap.plan.therapeuticGoals) {
+    doc.setFont("helvetica", "bold");
+    doc.text("Metas Terapêuticas:", margin, y);
+    y += lineHeight;
+    doc.setFont("helvetica", "normal");
+    addWrappedText(data.soap.plan.therapeuticGoals, margin, contentWidth);
+    y += 3;
+  }
+
+  if (data.soap.plan.medications && data.soap.plan.medications.length > 0) {
     doc.setFont("helvetica", "bold");
     doc.text("Medicamentos:", margin, y);
     y += lineHeight;
     doc.setFont("helvetica", "normal");
-    data.soap.plan.medications.forEach((med) => {
-      addWrappedText(`• ${med}`, margin + 5, contentWidth - 5);
+    data.soap.plan.medications.forEach((med: any) => {
+      if (typeof med === 'string') {
+         addWrappedText(`• ${med}`, margin + 5, contentWidth - 5);
+      } else {
+         addWrappedText(`• [${(med.action || 'MANTER').toUpperCase()}] ${med.name}`, margin + 5, contentWidth - 5);
+      }
     });
     y += 3;
   }
@@ -294,12 +342,12 @@ export function generateSOAPText(data: ExportData): string {
   text += "\n" + "-".repeat(50) + "\n\n";
 
   text += "SUBJETIVO (S)\n";
-  if (data.soap.subjective.chiefComplaint) {
-    text += `Queixa Principal: ${data.soap.subjective.chiefComplaint}\n`;
-  }
-  if (data.soap.subjective.historyPresentIllness) {
-    text += `HDA: ${data.soap.subjective.historyPresentIllness}\n`;
-  }
+  if (data.soap.subjective.chiefComplaint) text += `Queixa Principal: ${data.soap.subjective.chiefComplaint}\n`;
+  if (data.soap.subjective.historyPresentIllness) text += `HDA: ${data.soap.subjective.historyPresentIllness}\n`;
+  if (data.soap.subjective.pastMedicalHistory) text += `HMP: ${data.soap.subjective.pastMedicalHistory}\n`;
+  if (data.soap.subjective.familyHistory) text += `História Familiar: ${data.soap.subjective.familyHistory}\n`;
+  if (data.soap.subjective.socialHistory) text += `História Social: ${data.soap.subjective.socialHistory}\n`;
+  if (data.soap.subjective.reviewOfSystems) text += `Revisão por Sistemas: ${data.soap.subjective.reviewOfSystems}\n`;
   text += "\n";
 
   text += "OBJETIVO (O)\n";
@@ -315,17 +363,32 @@ export function generateSOAPText(data: ExportData): string {
   text += "\n";
 
   text += "AVALIAÇÃO (A)\n";
-  if (data.soap.assessment.diagnoses.length > 0) {
-    text += `Diagnósticos: ${data.soap.assessment.diagnoses.join("; ")}\n`;
+  if (data.soap.assessment.activeProblems && data.soap.assessment.activeProblems.length > 0) {
+    const problems = data.soap.assessment.activeProblems.map((p: any) => `${p.name} (${p.status})`);
+    text += `Problemas Ativos: ${problems.join("; ")}\n`;
   }
-  if (data.soap.assessment.differentials.length > 0) {
+  if (data.soap.assessment.encounterDiagnoses && data.soap.assessment.encounterDiagnoses.length > 0) {
+    text += `Diagnósticos Atuais: ${data.soap.assessment.encounterDiagnoses.join("; ")}\n`;
+  }
+  if (data.soap.assessment.differentials && data.soap.assessment.differentials.length > 0) {
     text += `DD: ${data.soap.assessment.differentials.join("; ")}\n`;
+  }
+  if (data.soap.assessment.clinicalReasoning) {
+    text += `Raciocínio Clínico: ${data.soap.assessment.clinicalReasoning}\n`;
   }
   text += "\n";
 
   text += "PLANO (P)\n";
-  if (data.soap.plan.medications.length > 0) {
-    text += `Medicamentos: ${data.soap.plan.medications.join("; ")}\n`;
+  if (data.soap.plan.therapeuticGoals) {
+    text += `Metas: ${data.soap.plan.therapeuticGoals}\n`;
+  }
+  if (data.soap.plan.medications && data.soap.plan.medications.length > 0) {
+    if (typeof data.soap.plan.medications[0] === 'string') {
+        text += `Medicamentos: ${(data.soap.plan.medications as string[]).join("; ")}\n`;
+    } else {
+        const meds = data.soap.plan.medications.map((m: any) => `[${(m.action || 'MANTER').toUpperCase()}] ${m.name}`);
+        text += `Medicamentos: ${meds.join("; ")}\n`;
+    }
   }
   if (data.soap.plan.procedures.length > 0) {
     text += `Procedimentos: ${data.soap.plan.procedures.join("; ")}\n`;

@@ -13,6 +13,7 @@ import { SplitLayout } from "@/components/split-layout";
 import { DocumentModal } from "@/components/document-modal";
 import { ActiveAgentPanel } from "@/components/active-agent";
 import { generateSOAPPDF, generateSOAPText } from "@/lib/pdf";
+import { SOAPData, createEmptySOAP } from "@/lib/prompts";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -45,48 +46,7 @@ interface Visit {
   }>;
 }
 
-interface SOAPData {
-  subjective: {
-    chiefComplaint: string;
-    historyPresentIllness: string;
-    raw: string;
-  };
-  objective: {
-    vitalSigns: string;
-    physicalExam: string;
-    labResults: string;
-    raw: string;
-  };
-  assessment: {
-    diagnoses: string[];
-    differentials: string[];
-    raw: string;
-  };
-  plan: {
-    medications: string[];
-    procedures: string[];
-    instructions: string[];
-    followUp: string;
-    raw: string;
-  };
-  mentions?: {
-    medications: string[];
-    diagnoses: string[];
-  };
-}
 
-const emptySOAP: SOAPData = {
-  subjective: { chiefComplaint: "", historyPresentIllness: "", raw: "" },
-  objective: { vitalSigns: "", physicalExam: "", labResults: "", raw: "" },
-  assessment: { diagnoses: [], differentials: [], raw: "" },
-  plan: {
-    medications: [],
-    procedures: [],
-    instructions: [],
-    followUp: "",
-    raw: "",
-  },
-};
 
 export default function ConsultaPage() {
   const params = useParams();
@@ -100,7 +60,7 @@ export default function ConsultaPage() {
   const [error, setError] = useState("");
 
   const [transcript, setTranscript] = useState("");
-  const [soap, setSoap] = useState<SOAPData>(emptySOAP);
+  const [soap, setSoap] = useState<SOAPData>(createEmptySOAP());
   const [suggestions, setSuggestions] = useState<Visit["suggestions"]>([]);
 
   // UI States
@@ -126,7 +86,7 @@ export default function ConsultaPage() {
           setSoap(JSON.parse(data.soapJson));
           setShowTranscriptionReview(false);
         } catch {
-          setSoap(emptySOAP);
+          setSoap(createEmptySOAP());
         }
       }
 
@@ -286,7 +246,7 @@ export default function ConsultaPage() {
   if (loading) return <div>Carregando...</div>;
   if (!visit) return <div>Erro ao carregar consulta</div>;
 
-  const hasSOAP = soap.subjective.chiefComplaint || soap.assessment.diagnoses.length > 0;
+  const hasSOAP = soap.subjective.chiefComplaint || (soap.assessment.activeProblems && soap.assessment.activeProblems.length > 0) || (soap.assessment.diagnoses && soap.assessment.diagnoses.length > 0);
 
   // --- COMPONENT PARTS FOR SPLIT VIEW ---
 
