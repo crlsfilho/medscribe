@@ -3,32 +3,7 @@
 import { useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-
-interface SOAPData {
-  subjective: {
-    chiefComplaint: string;
-    historyPresentIllness: string;
-    raw: string;
-  };
-  objective: {
-    vitalSigns: string;
-    physicalExam: string;
-    labResults: string;
-    raw: string;
-  };
-  assessment: {
-    diagnoses: string[];
-    differentials: string[];
-    raw: string;
-  };
-  plan: {
-    medications: string[];
-    procedures: string[];
-    instructions: string[];
-    followUp: string;
-    raw: string;
-  };
-}
+import { SOAPData, ActiveProblem, MedicationAction } from "@/lib/prompts";
 
 interface SOAPEditorProps {
   soap: SOAPData;
@@ -154,7 +129,7 @@ export function SOAPEditor({
     onChange({
       ...soap,
       [section]: {
-        ...soap[section],
+        ...(soap[section] as any),
         [field]: value,
       },
     });
@@ -167,6 +142,20 @@ export function SOAPEditor({
   ) => {
     const items = value.split("\n").filter((item) => item.trim());
     updateField(section, field, items);
+  };
+
+  const updateArrayOfObjectsField = (
+    section: keyof SOAPData,
+    field: string,
+    value: any[]
+  ) => {
+    onChange({
+      ...soap,
+      [section]: {
+        ...(soap[section] as any),
+        [field]: value,
+      },
+    });
   };
 
   return (
@@ -257,6 +246,55 @@ export function SOAPEditor({
                 readOnly={readOnly}
                 rows={4}
                 className="rounded-xl resize-none"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                História Mórbida Pregressa (HMP)
+              </Label>
+              <Textarea
+                value={soap.subjective.pastMedicalHistory || ""}
+                onChange={(e) => updateField("subjective", "pastMedicalHistory", e.target.value)}
+                placeholder="Doenças prévias, cirurgias, alergias..."
+                readOnly={readOnly} rows={3} className="rounded-xl resize-none"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                História Familiar (HMF)
+              </Label>
+              <Textarea
+                value={soap.subjective.familyHistory || ""}
+                onChange={(e) => updateField("subjective", "familyHistory", e.target.value)}
+                placeholder="Doenças na família..."
+                readOnly={readOnly} rows={2} className="rounded-xl resize-none"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                História Social
+              </Label>
+              <Textarea
+                value={soap.subjective.socialHistory || ""}
+                onChange={(e) => updateField("subjective", "socialHistory", e.target.value)}
+                placeholder="Tabagismo, etilismo, ocupação..."
+                readOnly={readOnly} rows={2} className="rounded-xl resize-none"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                Revisão por Sistemas
+              </Label>
+              <Textarea
+                value={soap.subjective.reviewOfSystems || ""}
+                onChange={(e) => updateField("subjective", "reviewOfSystems", e.target.value)}
+                placeholder="Outros sintomas relatados/negados fora da HMA..."
+                readOnly={readOnly} rows={3} className="rounded-xl resize-none"
               />
             </div>
           </div>
@@ -357,42 +395,80 @@ export function SOAPEditor({
           }
           isOpen={openSections.assessment}
           onToggle={() => toggleSection("assessment")}
-          badge={`${soap.assessment.diagnoses.length} diagnostico(s)`}
+          badge={`${soap.assessment.activeProblems?.length || 0} problema(s)`}
           badgeColor="bg-purple-100 text-purple-700"
         >
           <div className="space-y-4">
             <div className="space-y-2">
               <Label className="text-sm font-medium flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
-                Diagnosticos (um por linha)
+                Diagnósticos da Consulta (um por linha)
               </Label>
               <Textarea
-                value={soap.assessment.diagnoses.join("\n")}
+                value={soap.assessment.encounterDiagnoses?.join("\n") || ""}
                 onChange={(e) =>
-                  updateArrayField("assessment", "diagnoses", e.target.value)
+                  updateArrayField("assessment", "encounterDiagnoses", e.target.value)
                 }
-                placeholder="Hipoteses diagnosticas principais..."
+                placeholder="Diagnósticos pontuais identificados hoje..."
                 readOnly={readOnly}
-                rows={4}
+                rows={3}
                 className="rounded-xl resize-none"
               />
-              {soap.assessment.diagnoses.length > 0 && (
+              {soap.assessment.encounterDiagnoses?.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {soap.assessment.diagnoses.map((diag, idx) => {
-                    const match = diag.match(/^\[(.*?)\]/);
-                    const label = match ? match[1] : (diag.split(' ')[0] || diag);
+                  {soap.assessment.encounterDiagnoses.map((diag, idx) => {
                     return (
                       <span
                         key={idx}
                         className="px-2 py-1 rounded-lg bg-purple-50 text-purple-700 text-xs font-medium"
-                        title={diag}
                       >
-                        {label}
+                        {diag}
                       </span>
                     )
                   })}
                 </div>
               )}
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                Problemas Ativos (Tag [Ativo/Controlado/Resolvido] + Problema)
+              </Label>
+              <Textarea
+                value={(soap.assessment.activeProblems || []).map(p => `[${p.status || "ativo"}] ${p.name}`).join("\n")}
+                onChange={(e) => {
+                   const lines = e.target.value.split('\n').filter(l => l.trim());
+                   const parsed = lines.map(l => {
+                      const match = l.match(/^\[(.*?)\] (.*)/);
+                      if (match) return { status: match[1].toLowerCase(), name: match[2] };
+                      return { status: "ativo", name: l };
+                   });
+                   updateArrayOfObjectsField("assessment", "activeProblems", parsed);
+                }}
+                placeholder="[controlado] Hipertensão..."
+                readOnly={readOnly} rows={3} className="rounded-xl resize-none"
+              />
+            </div>
+
+            {soap.assessment.diagnoses && soap.assessment.diagnoses.length > 0 && (
+              <div className="space-y-2 opacity-60">
+                 <Label className="text-xs font-medium">Diagnósticos Legados (Prontuário Antigo)</Label>
+                 <Textarea value={(soap.assessment.diagnoses || []).join('\n')} readOnly rows={2} className="rounded-xl text-xs" />
+              </div>
+            )}
+            
+            <div className="space-y-2">
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
+                Raciocínio Clínico
+              </Label>
+              <Textarea
+                value={soap.assessment.clinicalReasoning || ""}
+                onChange={(e) => updateField("assessment", "clinicalReasoning", e.target.value)}
+                placeholder="Explicite o cruzamento sintoma-exame..."
+                readOnly={readOnly} rows={3} className="rounded-xl resize-none"
+              />
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium flex items-center gap-2">
@@ -446,30 +522,58 @@ export function SOAPEditor({
             <div className="space-y-2">
               <Label className="text-sm font-medium flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
-                Medicamentos (um por linha)
+                Metas Terapêuticas
               </Label>
               <Textarea
-                value={soap.plan.medications.join("\n")}
-                onChange={(e) =>
-                  updateArrayField("plan", "medications", e.target.value)
+                value={soap.plan.therapeuticGoals || ""}
+                onChange={(e) => updateField("plan", "therapeuticGoals", e.target.value)}
+                placeholder="Metas fisiológicas exatas para a próxima consulta..."
+                readOnly={readOnly} rows={2} className="rounded-xl resize-none"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
+                Medicamentos (Tag [Iniciar/Manter/Ajustar/Suspender] + Nome)
+              </Label>
+              <Textarea
+                value={
+                   soap.plan.medications?.length > 0 && typeof soap.plan.medications[0] === "string" 
+                   ? (soap.plan.medications as string[]).join("\n")
+                   : (soap.plan.medications as MedicationAction[])?.map(m => `[${(m.action || "MANTER").toUpperCase()}] ${m.name}`).join("\n") || ""
                 }
-                placeholder="Medicamento - dose - posologia - duracao..."
+                onChange={(e) => {
+                   const lines = e.target.value.split('\n').filter(l => l.trim());
+                   const parsed = lines.map(l => {
+                      const match = l.match(/^\[(.*?)\] (.*)/);
+                      if (match) return { action: match[1].toLowerCase(), name: match[2] };
+                      return { action: "manter", name: l };
+                   });
+                   updateArrayOfObjectsField("plan", "medications", parsed);
+                }}
+                placeholder="[INICIAR] Dipirona 500mg..."
                 readOnly={readOnly}
                 rows={4}
                 className="rounded-xl resize-none"
               />
-              {soap.plan.medications.length > 0 && (
+              {soap.plan.medications && soap.plan.medications.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {soap.plan.medications.map((med, idx) => {
-                    const match = med.match(/^\[(.*?)\]/);
-                    const label = match ? match[1] : (med.split(' ')[0] || med);
+                  {soap.plan.medications.map((med: string | MedicationAction, idx) => {
+                    if (typeof med === "string") {
+                       return <span key={idx} className="px-2 py-1 rounded-lg bg-orange-50 text-orange-700 text-xs font-medium">{med.split(' ')[0]}</span>;
+                    }
                     return (
                       <span
                         key={idx}
-                        className="px-2 py-1 rounded-lg bg-orange-50 text-orange-700 text-xs font-medium"
-                        title={med}
+                        className={`px-2 py-1 rounded-lg text-xs font-medium flex items-center gap-1 ${
+                           med.action === 'iniciar' ? 'bg-green-100 text-green-700' :
+                           med.action === 'suspender' ? 'bg-red-100 text-red-700' :
+                           med.action === 'ajustar' ? 'bg-blue-100 text-blue-700' :
+                           'bg-orange-50 text-orange-700'
+                        }`}
                       >
-                        {label}
+                        <span className="opacity-60 text-[10px] uppercase font-bold">{med.action}</span>
+                        {med.name}
                       </span>
                     )
                   })}

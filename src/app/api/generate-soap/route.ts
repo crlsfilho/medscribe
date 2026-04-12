@@ -128,52 +128,56 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function formatSOAPText(soap: {
-  subjective: { chiefComplaint: string; historyPresentIllness: string };
-  objective: { vitalSigns: string; physicalExam: string; labResults: string };
-  assessment: { diagnoses: string[]; differentials: string[] };
-  plan: { medications: string[]; procedures: string[]; instructions: string[]; followUp: string };
-}): string {
+function formatSOAPText(soap: any): string {
   let text = "NOTA CLÍNICA - FORMATO SOAP\n\n";
 
   text += "=== SUBJETIVO (S) ===\n";
-  if (soap.subjective.chiefComplaint) {
-    text += `Queixa Principal: ${soap.subjective.chiefComplaint}\n`;
-  }
-  if (soap.subjective.historyPresentIllness) {
-    text += `História da Doença Atual: ${soap.subjective.historyPresentIllness}\n`;
-  }
+  if (soap.subjective.chiefComplaint) text += `Queixa Principal: ${soap.subjective.chiefComplaint}\n`;
+  if (soap.subjective.historyPresentIllness) text += `História da Doença Atual: ${soap.subjective.historyPresentIllness}\n`;
+  if (soap.subjective.pastMedicalHistory) text += `História Mórbida Pregressa: ${soap.subjective.pastMedicalHistory}\n`;
+  if (soap.subjective.familyHistory) text += `História Familiar: ${soap.subjective.familyHistory}\n`;
+  if (soap.subjective.socialHistory) text += `História Social: ${soap.subjective.socialHistory}\n`;
+  if (soap.subjective.reviewOfSystems) text += `Revisão por Sistemas: ${soap.subjective.reviewOfSystems}\n`;
   text += "\n";
 
   text += "=== OBJETIVO (O) ===\n";
-  if (soap.objective.vitalSigns) {
-    text += `Sinais Vitais: ${soap.objective.vitalSigns}\n`;
-  }
-  if (soap.objective.physicalExam) {
-    text += `Exame Físico: ${soap.objective.physicalExam}\n`;
-  }
-  if (soap.objective.labResults) {
-    text += `Exames: ${soap.objective.labResults}\n`;
-  }
+  if (soap.objective.vitalSigns) text += `Sinais Vitais: ${soap.objective.vitalSigns}\n`;
+  if (soap.objective.physicalExam) text += `Exame Físico: ${soap.objective.physicalExam}\n`;
+  if (soap.objective.labResults) text += `Exames: ${soap.objective.labResults}\n`;
   text += "\n";
 
   text += "=== AVALIAÇÃO (A) ===\n";
-  if (soap.assessment.diagnoses.length > 0) {
-    text += `Diagnósticos: ${soap.assessment.diagnoses.join(", ")}\n`;
+  if (soap.assessment.activeProblems && soap.assessment.activeProblems.length > 0) {
+    const problems = soap.assessment.activeProblems.map((p: any) => `${p.name} (${p.status})`);
+    text += `Problemas Ativos: ${problems.join(", ")}\n`;
   }
-  if (soap.assessment.differentials.length > 0) {
+  if (soap.assessment.encounterDiagnoses && soap.assessment.encounterDiagnoses.length > 0) {
+    text += `Diagnósticos da Consulta: ${soap.assessment.encounterDiagnoses.join(", ")}\n`;
+  }
+  if (soap.assessment.diagnoses && soap.assessment.diagnoses.length > 0) {
+    text += `Lista de Diagnósticos: ${soap.assessment.diagnoses.join(", ")}\n`;
+  }
+  if (soap.assessment.differentials && soap.assessment.differentials.length > 0) {
     text += `Diagnósticos Diferenciais: ${soap.assessment.differentials.join(", ")}\n`;
   }
+  if (soap.assessment.clinicalReasoning) text += `Raciocínio Clínico: ${soap.assessment.clinicalReasoning}\n`;
   text += "\n";
 
   text += "=== PLANO (P) ===\n";
-  if (soap.plan.medications.length > 0) {
-    text += `Medicamentos: ${soap.plan.medications.join("; ")}\n`;
+  if (soap.plan.therapeuticGoals) text += `Metas Terapêuticas: ${soap.plan.therapeuticGoals}\n`;
+  
+  if (soap.plan.medications && soap.plan.medications.length > 0) {
+    if (typeof soap.plan.medications[0] === "string") {
+        text += `Medicamentos: ${soap.plan.medications.join("; ")}\n`;
+    } else {
+        const meds = soap.plan.medications.map((m: any) => `[${(m.action || "MANTER").toUpperCase()}] ${m.name}`);
+        text += `Medicamentos: ${meds.join("; ")}\n`;
+    }
   }
-  if (soap.plan.procedures.length > 0) {
+  if (soap.plan.procedures && soap.plan.procedures.length > 0) {
     text += `Procedimentos: ${soap.plan.procedures.join("; ")}\n`;
   }
-  if (soap.plan.instructions.length > 0) {
+  if (soap.plan.instructions && soap.plan.instructions.length > 0) {
     text += `Orientações: ${soap.plan.instructions.join("; ")}\n`;
   }
   if (soap.plan.followUp) {

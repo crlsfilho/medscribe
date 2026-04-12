@@ -3,64 +3,87 @@ export const SOAP_SYSTEM_PROMPT = `Você é um assistente médico especializado 
 REGRAS GERAIS:
 1. Transcreva o áudio fielmente, organizando as informações nos campos corretos.
 2. Use terminologia médica técnica adequada.
-3. Quando uma informação não for mencionada na consulta, preencha com "Não relatado".
-4. Quando o paciente negar algo explicitamente, use a forma "Nega..." (ex: "Nega alergias").
+3. Quando uma informação não for explícita nem discutida na consulta, o valor do JSON deve ser ABSOLUTAMENTE \`null\`.
+4. IMPORTANTÍSSIMO: Campos negados ativamente pelo paciente (ex: "tem alergia?" -> "não") NÃO SÃO \`null\`. Eles devem conter a frase de negação (ex: "Nega de alergias").
 5. Calcule automaticamente: IMC, classificação do IMC, carga tabágica (anos/maço).
 6. Preste atenção especial a dados numéricos (medidas, doses, datas).
-8. Para Medicamentos e Diagnósticos no JSON, inicie CADA linha com uma TAG CURTA entre colchetes. Ex: "[Analgésico] Paracetamol 750mg" ou "[Viral] Suspeita de Dengue". A tag deve ter 1 palavra genérica.
-9. Retorne APENAS JSON válido, sem markdown, sem comentários fora do JSON.`;
+7. Para a ação de medicações no Plano, use estritamente: "iniciar", "manter", "ajustar" ou "suspender".
+8. Retorne APENAS JSON válido, sem markdown, sem comentários fora do JSON.`;
 
 export const SOAP_USER_PROMPT = `Analise a transcrição de consulta médica abaixo e gere DOIS documentos formatedos (Markdown) e extraia os dados estruturados.
 
-FORMATO DE SAÍDA (JSON estrito):
+FORMATO DE SAÍDA EXIGIDO (JSON estrito):
 {
   "subjective": {
     "chiefComplaint": "queixa principal",
     "historyPresentIllness": "HMA",
-    "raw": "texto relevante"
+    "pastMedicalHistory": "doenças prévias, cirurgias, internações, alergias. null se não citado. 'Nega alergias' se negado.",
+    "familyHistory": "doenças na família. null se não citado",
+    "socialHistory": "tabagismo, etilismo, estilo de vida. null se não citado",
+    "reviewOfSystems": "sinais e sintomas nos aparelhos fora da HMA. null se não citado",
+    "raw": "texto estruturado subjetivo"
   },
   "objective": {
     "vitalSigns": "sinais vitais",
     "physicalExam": "exame físico",
-    "labResults": "exames",
-    "raw": "texto relevante"
+    "labResults": "exames interpretados/trazidos",
+    "raw": "texto objetivo"
   },
   "assessment": {
-    "diagnoses": ["diagnosticos citados"],
+    "activeProblems": [
+      {
+        "name": "nome do problema/doença ativa",
+        "status": "ativo|controlado|em investigação|resolvido"
+      }
+    ],
+    "encounterDiagnoses": ["diagnósticos conclusivos do dia de hoje"],
     "differentials": ["diagnosticos diferenciais"],
-    "raw": "analise clinica"
+    "clinicalReasoning": "texto livre conectando dados a favor e contra para explicar a linha de raciocínio. null se óbvio demais sem justificativa mair",
+    "raw": "analise clinica estruturada"
   },
   "plan": {
-    "medications": ["medicamentos citados"],
+    "therapeuticGoals": "metas mensuráveis (ex: PA < 130/80 em 30d). null se n/a",
+    "medications": [
+      {
+        "name": "nome do medicamento longo/posologia",
+        "action": "iniciar|manter|ajustar|suspender"
+      }
+    ],
     "procedures": ["procedimentos"],
     "instructions": ["orientacoes"],
     "followUp": "retorno",
-    "raw": "plano"
+    "raw": "plano detalhado"
   },
   "mentions": {
-    "medications": ["lista exata de medicamentos para linkagem"],
-    "diagnoses": ["lista exata de diagnosticos para linkagem"]
+    "medications": ["lista extata de drogas ativas isoladas para linkagem. apenas nomes limpos"],
+    "diagnoses": ["lista exata de CIDs citados purificados"],
+    "labTests": ["lista de nomes de exames purificados, sejam novos pedidos ou resultados antigos lidos"]
   },
-  "prontuarioFormatted": "MARKDOWN DA 'CONSULTA DIA ...' ATÉ O FIM DO '#CHV (Completo)'. SIGA O MODELO DO USUÁRIO EXATAMENTE.",
-  "soapEnrichedFormatted": "MARKDOWN DA 'NOTA SOAP ENRIQUECIDA' COM #S, #O, #A e #P ENRIQUECIDOS E SUGESTÕES."
+  "prontuarioFormatted": "MARKDOWN",
+  "soapEnrichedFormatted": "MARKDOWN"
 }
-
-MODELO DO PRONTUÁRIO (para o campo 'prontuarioFormatted'):
-**<u>CONSULTA DIA [DATA]</u>**
-**[NOME], [IDADE] anos**
-**ID:** [DADOS ID]
-... (Siga o modelo: #Medicamentos, #Cirurgias, #Alergias, #CHV Resumo, #Vacinas, #Antropometria, Risco CV, #HMA, #HMP, #HMF, #CHV Completo)
-
-MODELO DO SOAP ENRIQUECIDO (para o campo 'soapEnrichedFormatted'):
-... (Siga o modelo: #S Enriquecido, #O Enriquecido, #A Enriquecido - com metas e diretrizes, #P Enriquecido - com sugestões baseadas em evidências)
 
 TRANSCRIÇÃO:
 `;
+
+export interface ActiveProblem {
+  name: string;
+  status: "ativo" | "controlado" | "em investigação" | "resolvido";
+}
+
+export interface MedicationAction {
+  name: string;
+  action: "iniciar" | "manter" | "ajustar" | "suspender";
+}
 
 export interface SOAPData {
   subjective: {
     chiefComplaint: string;
     historyPresentIllness: string;
+    pastMedicalHistory: string | null;
+    familyHistory: string | null;
+    socialHistory: string | null;
+    reviewOfSystems: string | null;
     raw: string;
   };
   objective: {
@@ -70,12 +93,16 @@ export interface SOAPData {
     raw: string;
   };
   assessment: {
-    diagnoses: string[];
+    activeProblems: ActiveProblem[];
+    encounterDiagnoses: string[];
     differentials: string[];
+    clinicalReasoning: string | null;
     raw: string;
+    diagnoses?: string[]; // Legacy fallback
   };
   plan: {
-    medications: string[];
+    therapeuticGoals: string | null;
+    medications: MedicationAction[] | string[]; // Suporte Legacy
     procedures: string[];
     instructions: string[];
     followUp: string;
@@ -84,6 +111,7 @@ export interface SOAPData {
   mentions: {
     medications: string[];
     diagnoses: string[];
+    labTests: string[];
   };
   prontuarioFormatted?: string;
   soapEnrichedFormatted?: string;
@@ -94,7 +122,6 @@ export function validateSOAPData(data: unknown): data is SOAPData {
 
   const soap = data as Record<string, unknown>;
 
-  // Check required sections
   const sections = ["subjective", "objective", "assessment", "plan", "mentions"];
   for (const section of sections) {
     if (typeof soap[section] !== "object" || soap[section] === null) {
@@ -110,6 +137,10 @@ export function createEmptySOAP(): SOAPData {
     subjective: {
       chiefComplaint: "",
       historyPresentIllness: "",
+      pastMedicalHistory: null,
+      familyHistory: null,
+      socialHistory: null,
+      reviewOfSystems: null,
       raw: "",
     },
     objective: {
@@ -119,11 +150,14 @@ export function createEmptySOAP(): SOAPData {
       raw: "",
     },
     assessment: {
-      diagnoses: [],
+      activeProblems: [],
+      encounterDiagnoses: [],
       differentials: [],
+      clinicalReasoning: null,
       raw: "",
     },
     plan: {
+      therapeuticGoals: null,
       medications: [],
       procedures: [],
       instructions: [],
@@ -133,8 +167,10 @@ export function createEmptySOAP(): SOAPData {
     mentions: {
       medications: [],
       diagnoses: [],
+      labTests: [],
     },
     prontuarioFormatted: "",
     soapEnrichedFormatted: ""
   };
 }
+
