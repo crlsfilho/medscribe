@@ -12,6 +12,7 @@ import { LegalDisclaimer } from "@/components/legal-disclaimer";
 import { SplitLayout } from "@/components/split-layout";
 import { DocumentModal } from "@/components/document-modal";
 import { ActiveAgentPanel } from "@/components/active-agent";
+import { ContinueRecording } from "@/components/continue-recording";
 import { generateSOAPPDF, generateSOAPText } from "@/lib/pdf";
 import { SOAPData, createEmptySOAP } from "@/lib/prompts";
 import { toast } from "sonner";
@@ -66,9 +67,41 @@ export default function ConsultaPage() {
   // UI States
   const [showTranscriptionReview, setShowTranscriptionReview] = useState(false);
   const [editingTranscript, setEditingTranscript] = useState(false);
+  const [showContinueRecording, setShowContinueRecording] = useState(false);
 
   // Document Modal State
   const [showDocModal, setShowDocModal] = useState(false);
+
+  const handleAppendTranscript = (newText: string) => {
+    setTranscript(prev => prev ? `${prev}\n\n${newText}` : newText);
+  };
+
+  const handleRegenerateSOAP = async () => {
+    setGenerating(true);
+    try {
+      // First save the updated transcript
+      await fetch(`/api/visits/${visitId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transcriptText: transcript }),
+      });
+      // Then re-generate SOAP
+      const response = await fetch("/api/generate-soap", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ visitId }),
+      });
+      if (!response.ok) throw new Error("Erro ao re-gerar SOAP");
+      const data = await response.json();
+      setSoap(data.soap);
+      setSuggestions(data.suggestions || []);
+      toast.success("Prontuário atualizado com o novo conteúdo!");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao re-gerar SOAP");
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   const fetchVisit = useCallback(async () => {
     try {
@@ -250,11 +283,11 @@ export default function ConsultaPage() {
 
   // --- COMPONENT PARTS FOR SPLIT VIEW ---
 
-  // LEFT PANEL: Transcription & Evidence (Stacked)
+  // LEFT PANEL: Transcription & Diagnostic Panel (Stacked)
   const LeftPanel = (
     <div className="h-full flex flex-col gap-4 overflow-hidden">
-      {/* Top Half: Transcription */}
-      <div className="flex-1 flex flex-col min-h-0 bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+      {/* Top: Transcription */}
+      <div className="flex flex-col min-h-0 bg-card border border-border rounded-xl shadow-sm overflow-hidden" style={{ flex: "0 0 45%" }}>
         <div className="flex items-center gap-3 p-3 border-b border-border/50 bg-muted/20">
           <h2 className="font-semibold text-sm text-foreground">Transcrição</h2>
           {transcript && (
@@ -262,17 +295,41 @@ export default function ConsultaPage() {
               {transcript.split(' ').length} palavras
             </span>
           )}
+          <div className="ml-auto">
+            {!showContinueRecording ? (
+              <button
+                onClick={() => setShowContinueRecording(true)}
+                title="Adicionar nova sessão de gravação"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium rounded-lg border border-border text-muted-foreground bg-card hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-all duration-200"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+                </svg>
+                Continuar
+              </button>
+            ) : null}
+          </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-3">
+        <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3">
           {visit.audioUrl && visit.audioUrl !== "processed-in-memory" && (
-            <div className="bg-muted/30 rounded-lg p-2 border border-border/50 mb-3">
+            <div className="bg-muted/30 rounded-lg p-2 border border-border/50">
               <audio
                 src={visit.audioUrl.startsWith("http") ? visit.audioUrl : `/api${visit.audioUrl}`}
                 controls
                 className="w-full h-8"
               />
             </div>
+          )}
+
+          {/* Continue Recording inline panel */}
+          {showContinueRecording && (
+            <ContinueRecording
+              visitId={visitId}
+              onTranscriptAppended={handleAppendTranscript}
+              onRegenerate={handleRegenerateSOAP}
+              onClose={() => setShowContinueRecording(false)}
+            />
           )}
 
           {showTranscriptionReview ? (
@@ -287,10 +344,24 @@ export default function ConsultaPage() {
               value={transcript}
               onChange={(e) => setTranscript(e.target.value)}
               placeholder="A transcrição aparecerá aqui..."
-              className="h-full min-h-[200px] bg-transparent border-0 resize-none focus-visible:ring-0 p-1 text-sm leading-relaxed"
+              className="flex-1 min-h-[160px] bg-transparent border-0 resize-none focus-visible:ring-0 p-1 text-sm leading-relaxed"
             />
           )}
         </div>
+      </div>
+
+      {/* Bottom: Hipóteses Diagnósticas */}
+      <div className="flex-1 min-h-0 overflow-hidden">
+        <DiagnosticPanel
+          transcript={transcript}
+          soapContext={{
+            chiefComplaint: soap.subjective.chiefComplaint,
+            age: visit?.patient?.age,
+            sex: visit?.patient?.sex,
+            vitals: soap.objective.vitalSigns
+          }}
+          className="h-full"
+        />
       </div>
     </div>
   );
@@ -377,20 +448,6 @@ export default function ConsultaPage() {
             <SOAPEditor 
               soap={soap} 
               onChange={setSoap}
-              assessmentPanel={
-                <div className="flex flex-col bg-muted/30 border border-border rounded-xl shadow-sm overflow-hidden">
-                  <DiagnosticPanel
-                    transcript={transcript}
-                    soapContext={{
-                      chiefComplaint: soap.subjective.chiefComplaint,
-                      age: visit?.patient?.age,
-                      sex: visit?.patient?.sex,
-                      vitals: soap.objective.vitalSigns
-                    }}
-                    className="h-full border-0 rounded-none shadow-none"
-                  />
-                </div>
-              }
             />
           )}
 

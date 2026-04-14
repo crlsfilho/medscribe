@@ -9,7 +9,6 @@ interface SOAPEditorProps {
   soap: SOAPData;
   onChange: (soap: SOAPData) => void;
   readOnly?: boolean;
-  assessmentPanel?: React.ReactNode;
 }
 
 interface CollapsibleSectionProps {
@@ -20,6 +19,8 @@ interface CollapsibleSectionProps {
   badge?: string;
   badgeColor?: string;
   children: React.ReactNode;
+  onCopy?: () => void;
+  copyLabel?: string;
 }
 
 function CollapsibleSection({
@@ -30,9 +31,20 @@ function CollapsibleSection({
   badge,
   badgeColor = "bg-primary/10 text-primary",
   children,
+  onCopy,
 }: CollapsibleSectionProps) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!onCopy) return;
+    onCopy();
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
-    <div className="border border-border rounded-xl overflow-hidden">
+    <div className="border border-border rounded-xl overflow-hidden group/section">
       <button
         onClick={onToggle}
         className="w-full flex items-center justify-between p-3 sm:p-4 bg-card hover:bg-muted/30 transition-colors text-left"
@@ -51,6 +63,27 @@ function CollapsibleSection({
           )}
         </div>
         <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+          {onCopy && (
+            <span
+              onClick={handleCopy}
+              title={copied ? "Copiado!" : "Copiar seção"}
+              className={`inline-flex items-center justify-center w-6 h-6 rounded-md transition-all duration-200 opacity-0 group-hover/section:opacity-100 ${
+                copied
+                  ? "text-primary bg-primary/10"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              }`}
+            >
+              {copied ? (
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+              ) : (
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" />
+                </svg>
+              )}
+            </span>
+          )}
           <svg
             className={`w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground transition-transform ${isOpen ? "rotate-180" : ""}`}
             fill="none"
@@ -66,7 +99,6 @@ function CollapsibleSection({
           </svg>
         </div>
       </button>
-      {/* Show badge on mobile below title if open, or omit. For simplicity, just hidden on very small. */}
       {isOpen && (
         <div className="p-3 sm:p-4 bg-card border-t border-border flex flex-col gap-4">
           {badge && (
@@ -87,7 +119,6 @@ export function SOAPEditor({
   soap,
   onChange,
   readOnly = false,
-  assessmentPanel,
 }: SOAPEditorProps) {
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     subjective: true,
@@ -191,6 +222,17 @@ export function SOAPEditor({
         {/* Subjective */}
         <CollapsibleSection
           title="S - Subjetivo"
+          onCopy={() => {
+            const parts = [
+              soap.subjective.chiefComplaint && `QP: ${soap.subjective.chiefComplaint}`,
+              soap.subjective.historyPresentIllness && `HDA: ${soap.subjective.historyPresentIllness}`,
+              soap.subjective.pastMedicalHistory && `HMP: ${soap.subjective.pastMedicalHistory}`,
+              soap.subjective.familyHistory && `HMF: ${soap.subjective.familyHistory}`,
+              soap.subjective.socialHistory && `História Social: ${soap.subjective.socialHistory}`,
+              soap.subjective.reviewOfSystems && `Revisão por Sistemas: ${soap.subjective.reviewOfSystems}`,
+            ].filter(Boolean).join("\n\n");
+            navigator.clipboard.writeText(parts);
+          }}
           icon={
             <svg
               className="w-4 h-4"
@@ -303,6 +345,14 @@ export function SOAPEditor({
         {/* Objective */}
         <CollapsibleSection
           title="O - Objetivo"
+          onCopy={() => {
+            const parts = [
+              soap.objective.vitalSigns && `Sinais Vitais: ${soap.objective.vitalSigns}`,
+              soap.objective.physicalExam && `Exame Físico: ${soap.objective.physicalExam}`,
+              soap.objective.labResults && `Exames Complementares: ${soap.objective.labResults}`,
+            ].filter(Boolean).join("\n\n");
+            navigator.clipboard.writeText(parts);
+          }}
           icon={
             <svg
               className="w-4 h-4"
@@ -378,6 +428,15 @@ export function SOAPEditor({
         {/* Assessment */}
         <CollapsibleSection
           title="A - Avaliacao"
+          onCopy={() => {
+            const parts = [
+              soap.assessment.encounterDiagnoses?.length && `Diagnósticos da Consulta:\n${soap.assessment.encounterDiagnoses.join("\n")}`,
+              soap.assessment.activeProblems?.length && `Problemas Ativos:\n${soap.assessment.activeProblems.map(p => `[${p.status}] ${p.name}`).join("\n")}`,
+              soap.assessment.clinicalReasoning && `Raciocínio Clínico: ${soap.assessment.clinicalReasoning}`,
+              soap.assessment.differentials?.length && `Diagnósticos Diferenciais:\n${soap.assessment.differentials.join("\n")}`,
+            ].filter(Boolean).join("\n\n");
+            navigator.clipboard.writeText(parts);
+          }}
           icon={
             <svg
               className="w-4 h-4"
@@ -433,7 +492,7 @@ export function SOAPEditor({
             <div className="space-y-2">
               <Label className="text-sm font-medium flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
-                Problemas Ativos (Tag [Ativo/Controlado/Resolvido] + Problema)
+                Problemas Ativos
               </Label>
               <Textarea
                 value={(soap.assessment.activeProblems || []).map(p => `[${p.status || "ativo"}] ${p.name}`).join("\n")}
@@ -486,18 +545,26 @@ export function SOAPEditor({
                 className="rounded-xl resize-none"
               />
             </div>
-            {/* Inject AI Diagnostic Panel Here */}
-            {assessmentPanel && (
-              <div className="mt-6 pt-6 border-t border-border border-dashed">
-                {assessmentPanel}
-              </div>
-            )}
+
           </div>
         </CollapsibleSection>
 
         {/* Plan */}
         <CollapsibleSection
           title="P - Plano"
+          onCopy={() => {
+            const meds = soap.plan.medications?.length
+              ? `Medicamentos:\n${(soap.plan.medications as MedicationAction[]).map(m => `[${(m.action || "manter").toUpperCase()}] ${m.name}`).join("\n")}`
+              : "";
+            const parts = [
+              soap.plan.therapeuticGoals && `Metas Terapêuticas: ${soap.plan.therapeuticGoals}`,
+              meds,
+              soap.plan.procedures?.length && `Procedimentos:\n${soap.plan.procedures.join("\n")}`,
+              soap.plan.instructions?.length && `Orientações ao Paciente:\n${soap.plan.instructions.join("\n")}`,
+              soap.plan.followUp && `Retorno: ${soap.plan.followUp}`,
+            ].filter(Boolean).join("\n\n");
+            navigator.clipboard.writeText(parts);
+          }}
           icon={
             <svg
               className="w-4 h-4"
