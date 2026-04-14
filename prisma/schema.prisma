@@ -20,6 +20,7 @@ model User {
   clinicName         String?
   onboardingComplete Boolean       @default(false)
   vidaasActive       Boolean       @default(false)
+  isAdmin            Boolean       @default(false)
   createdAt          DateTime      @default(now())
   patients           Patient[]
   visits             Visit[]

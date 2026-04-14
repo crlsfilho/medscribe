@@ -1,6 +1,7 @@
 "use client";
 
 import { signOut, useSession } from "next-auth/react";
+import { useTheme } from "next-themes";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ export default function DashboardLayout({
 }) {
   const { data: session } = useSession();
   const pathname = usePathname();
+  const { theme, setTheme } = useTheme();
 
   const navigation = [
     {
@@ -59,6 +61,19 @@ export default function DashboardLayout({
       )
     },
   ];
+
+  if (session?.user?.isAdmin) {
+    navigation.push({
+      name: "Admin",
+      href: "/admin",
+      icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z" />
+        </svg>
+      )
+    });
+  }
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
@@ -100,6 +115,45 @@ export default function DashboardLayout({
 
             {/* User Menu */}
             <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+              {/* Dark Mode Toggle */}
+              <button
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                aria-label="Toggle dark mode"
+                className="relative inline-flex items-center w-[52px] h-7 rounded-full border border-border bg-muted transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 hover:border-primary/50"
+              >
+                {/* Track color when dark */}
+                <span
+                  className={`absolute inset-0 rounded-full transition-colors duration-300 ${
+                    theme === "dark" ? "bg-primary/20" : "bg-transparent"
+                  }`}
+                />
+                {/* Sun icon */}
+                <span
+                  className={`absolute left-1 transition-all duration-300 ${
+                    theme === "dark" ? "opacity-30 scale-75" : "opacity-100 scale-100"
+                  }`}
+                >
+                  <svg className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
+                  </svg>
+                </span>
+                {/* Moon icon */}
+                <span
+                  className={`absolute right-1 transition-all duration-300 ${
+                    theme === "dark" ? "opacity-100 scale-100" : "opacity-30 scale-75"
+                  }`}
+                >
+                  <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
+                  </svg>
+                </span>
+                {/* Sliding pill indicator */}
+                <span
+                  className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-sm border border-border transition-all duration-300 ease-in-out ${
+                    theme === "dark" ? "translate-x-[26px]" : "translate-x-0.5"
+                  }`}
+                />
+              </button>
               {/* Privacy Indicator - Hidden on smallest screens */}
               <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent/50 text-xs font-medium text-accent-foreground">
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
