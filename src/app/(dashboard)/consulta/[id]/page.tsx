@@ -355,10 +355,10 @@ export default function ConsultaPage() {
         <DiagnosticPanel
           transcript={transcript}
           soapContext={{
-            chiefComplaint: soap.subjective.chiefComplaint,
+            chiefComplaint: soap.subjective?.chiefComplaint,
             age: visit?.patient?.age,
             sex: visit?.patient?.sex,
-            vitals: soap.objective.vitalSigns
+            vitals: soap.objective?.vitalSigns
           }}
           className="h-full"
         />

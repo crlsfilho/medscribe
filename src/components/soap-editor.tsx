@@ -454,7 +454,7 @@ export function SOAPEditor({
           }
           isOpen={openSections.assessment}
           onToggle={() => toggleSection("assessment")}
-          badge={`${soap.assessment.activeProblems?.length || 0} problema(s)`}
+          badge={`${soap.assessment?.activeProblems?.length || 0} problema(s)`}
           badgeColor="bg-purple-100 text-purple-700"
         >
           <div className="space-y-4">
@@ -535,7 +535,7 @@ export function SOAPEditor({
                 Diagnosticos Diferenciais (um por linha)
               </Label>
               <Textarea
-                value={soap.assessment.differentials.join("\n")}
+                value={(soap.assessment.differentials || []).join("\n")}
                 onChange={(e) =>
                   updateArrayField("assessment", "differentials", e.target.value)
                 }
@@ -582,7 +582,7 @@ export function SOAPEditor({
           }
           isOpen={openSections.plan}
           onToggle={() => toggleSection("plan")}
-          badge={`${soap.plan.medications.length} medicamento(s)`}
+          badge={`${soap.plan?.medications?.length || 0} medicamento(s)`}
           badgeColor="bg-orange-100 text-orange-700"
         >
           <div className="space-y-4">
@@ -653,7 +653,7 @@ export function SOAPEditor({
                 Procedimentos (um por linha)
               </Label>
               <Textarea
-                value={soap.plan.procedures.join("\n")}
+                value={(soap.plan.procedures || []).join("\n")}
                 onChange={(e) =>
                   updateArrayField("plan", "procedures", e.target.value)
                 }
@@ -669,7 +669,7 @@ export function SOAPEditor({
                 Orientacoes ao Paciente (uma por linha)
               </Label>
               <Textarea
-                value={soap.plan.instructions.join("\n")}
+                value={(soap.plan.instructions || []).join("\n")}
                 onChange={(e) =>
                   updateArrayField("plan", "instructions", e.target.value)
                 }
