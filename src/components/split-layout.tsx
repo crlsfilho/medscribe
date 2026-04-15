@@ -116,7 +116,7 @@ export function SplitLayout({ leftPanel, children, rightPanel }: SplitLayoutProp
                     {isLeftOpen && (
                         <button
                             onClick={() => setIsLeftOpen(false)}
-                            className="absolute top-3 right-3 p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg z-20 backdrop-blur-sm bg-card/50"
+                            className="absolute top-2.5 right-2.5 p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg z-30 transition-all duration-200"
                             title="Recolher painel"
                         >
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>

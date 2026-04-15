@@ -283,19 +283,26 @@ export default function ConsultaPage() {
 
   // --- COMPONENT PARTS FOR SPLIT VIEW ---
 
-  // LEFT PANEL: Transcription & Diagnostic Panel (Stacked)
+  // LEFT PANEL: Combined Transcription & Diagnostic Panel with single scroll
   const LeftPanel = (
-    <div className="h-full flex flex-col gap-4 overflow-hidden">
-      {/* Top: Transcription */}
-      <div className="flex flex-col min-h-0 bg-card border border-border rounded-xl shadow-sm overflow-hidden" style={{ flex: "0 0 45%" }}>
+    <div className="flex flex-col gap-6 p-1 pb-10">
+      {/* Transcription Section */}
+      <div className="flex flex-col bg-card border border-border rounded-xl shadow-sm overflow-hidden min-h-0">
         <div className="flex items-center gap-3 p-3 border-b border-border/50 bg-muted/20">
-          <h2 className="font-semibold text-sm text-foreground">Transcrição</h2>
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center text-primary">
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+              </svg>
+            </div>
+            <h2 className="font-semibold text-sm text-foreground">Transcrição</h2>
+          </div>
           {transcript && (
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
               {transcript.split(' ').length} palavras
             </span>
           )}
-          <div className="ml-auto">
+          <div className="ml-auto pr-8"> {/* Reserve space for collapse button */}
             {!showContinueRecording ? (
               <button
                 onClick={() => setShowContinueRecording(true)}
@@ -303,7 +310,7 @@ export default function ConsultaPage() {
                 className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium rounded-lg border border-border text-muted-foreground bg-card hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-all duration-200"
               >
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
                 Continuar
               </button>
@@ -311,9 +318,13 @@ export default function ConsultaPage() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3">
+        <div className="p-4 flex flex-col gap-4">
           {visit.audioUrl && visit.audioUrl !== "processed-in-memory" && (
-            <div className="bg-muted/30 rounded-lg p-2 border border-border/50">
+            <div className="bg-muted/30 rounded-xl p-3 border border-border/50 shadow-inner">
+              <div className="flex items-center gap-2 mb-2 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M13.5 4.06c0-1.336-1.616-2.005-2.56-1.06l-4.5 4.5H4.508c-1.141 0-2.066.925-2.066 2.067v4.866c0 1.142.925 2.067 2.066 2.067h1.934l4.5 4.5c.944.945 2.56.276 2.56-1.06V4.06Z" /></svg>
+                Áudio da Consulta
+              </div>
               <audio
                 src={visit.audioUrl.startsWith("http") ? visit.audioUrl : `/api${visit.audioUrl}`}
                 controls
@@ -340,29 +351,34 @@ export default function ConsultaPage() {
               disabled={generating}
             />
           ) : (
-            <Textarea
-              value={transcript}
-              onChange={(e) => setTranscript(e.target.value)}
-              placeholder="A transcrição aparecerá aqui..."
-              className="flex-1 min-h-[160px] bg-transparent border-0 resize-none focus-visible:ring-0 p-1 text-sm leading-relaxed"
-            />
+            <div className="relative group">
+              <Textarea
+                value={transcript}
+                onChange={(e) => setTranscript(e.target.value)}
+                placeholder="A transcrição aparecerá aqui..."
+                className="min-h-[250px] bg-transparent border-0 resize-none focus-visible:ring-0 p-0 text-sm leading-relaxed text-foreground/90 scrollbar-none"
+              />
+              {!transcript && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
+                      <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+                  </div>
+              )}
+            </div>
           )}
         </div>
       </div>
 
-      {/* Bottom: Hipóteses Diagnósticas */}
-      <div className="flex-1 min-h-0 overflow-hidden">
-        <DiagnosticPanel
-          transcript={transcript}
-          soapContext={{
-            chiefComplaint: soap.subjective?.chiefComplaint,
-            age: visit?.patient?.age,
-            sex: visit?.patient?.sex,
-            vitals: soap.objective?.vitalSigns
-          }}
-          className="h-full"
-        />
-      </div>
+      {/* Hipóteses Diagnósticas Section */}
+      <DiagnosticPanel
+        transcript={transcript}
+        soapContext={{
+          chiefComplaint: soap.subjective?.chiefComplaint,
+          age: visit?.patient?.age,
+          sex: visit?.patient?.sex,
+          vitals: soap.objective?.vitalSigns
+        }}
+        isEmbedded
+      />
     </div>
   );
 
