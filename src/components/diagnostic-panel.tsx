@@ -31,9 +31,10 @@ interface DiagnosticPanelProps {
     transcript?: string;
     soapContext?: any;
     className?: string;
+    isEmbedded?: boolean;
 }
 
-export function DiagnosticPanel({ transcript, soapContext, className }: DiagnosticPanelProps) {
+export function DiagnosticPanel({ transcript, soapContext, className, isEmbedded }: DiagnosticPanelProps) {
     const [data, setData] = useState<DiagnosisResponse | null>(null);
     const [loading, setLoading] = useState(false);
     const [analyzed, setAnalyzed] = useState(false);
@@ -148,7 +149,7 @@ export function DiagnosticPanel({ transcript, soapContext, className }: Diagnost
     };
 
     return (
-        <div className={`flex flex-col h-full bg-card rounded-xl border border-border overflow-hidden ${className || ""}`}>
+        <div className={`flex flex-col h-full ${!isEmbedded ? "bg-card rounded-xl border border-border overflow-hidden" : ""} ${className || ""}`}>
             {/* Header */}
             <div className="p-4 border-b border-border bg-muted/20 flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -179,7 +180,7 @@ export function DiagnosticPanel({ transcript, soapContext, className }: Diagnost
             )}
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className={`flex-1 ${!isEmbedded ? "overflow-y-auto" : ""} p-4 space-y-4`}>
                 {!analyzed && !loading && (
                     <div className="flex flex-col items-center justify-center h-40 text-center opacity-50">
                         <p className="text-sm">Aguardando análise...</p>

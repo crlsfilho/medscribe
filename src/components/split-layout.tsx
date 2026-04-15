@@ -104,7 +104,7 @@ export function SplitLayout({ leftPanel, children, rightPanel }: SplitLayoutProp
                 className={`transition-all duration-300 ease-in-out flex flex-col ${isLeftOpen ? "w-[40%] min-w-[350px] max-w-[500px]" : "w-12 bg-muted/30 rounded-xl"
                     }`}
             >
-                <div className="flex-1 overflow-hidden bg-card border border-border rounded-xl shadow-sm relative">
+                <div className={`flex-1 overflow-hidden bg-card border border-border rounded-xl shadow-sm relative flex flex-col ${isLeftOpen ? "overflow-y-auto custom-scrollbar" : ""}`}>
                     {isLeftOpen ? leftPanel : (
                         <button onClick={() => setIsLeftOpen(true)} className="w-full h-full flex flex-col items-center pt-8 gap-4 text-muted-foreground hover:text-primary transition-colors">
                             <span className="rotate-90 whitespace-nowrap text-sm font-medium tracking-wide">Transcrição</span>
@@ -116,9 +116,10 @@ export function SplitLayout({ leftPanel, children, rightPanel }: SplitLayoutProp
                     {isLeftOpen && (
                         <button
                             onClick={() => setIsLeftOpen(false)}
-                            className="absolute top-2 right-2 p-1 text-muted-foreground hover:bg-muted rounded-lg"
+                            className="absolute top-3 right-3 p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg z-20 backdrop-blur-sm bg-card/50"
+                            title="Recolher painel"
                         >
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
                             </svg>
                         </button>

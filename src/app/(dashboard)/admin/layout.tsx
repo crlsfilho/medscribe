@@ -9,7 +9,7 @@ export default async function AdminLayout({
 }) {
   const session = await getServerSession(authOptions);
 
-  if (!session?.user?.isAdmin) {
+  if (!session?.user?.id || session.user.email !== "carlos@worldpackers.com") {
     redirect("/dashboard");
   }
 

@@ -54,13 +54,53 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.isAdmin = user.isAdmin;
+        token.email = user.email;
       }
+
+      // Check for impersonation cookie if current user is the super admin
+      if (token.email === "carlos@worldpackers.com") {
+        try {
+          const { cookies } = await import("next/headers");
+          const impersonateId = cookies().get("impersonate_user_id")?.value;
+
+          if (impersonateId) {
+            // Lazy load prisma to avoid circular dependencies if any
+            const { prisma } = await import("./prisma");
+            const targetUser = await prisma.user.findUnique({
+              where: { id: impersonateId },
+            });
+
+            if (targetUser) {
+              token.id = targetUser.id;
+              token.isAdmin = targetUser.isAdmin;
+              token.impersonatedFromEmail = "carlos@worldpackers.com";
+              // We don't change token.email here because we need it to identify the super-admin in subsequent calls
+              // But we can add a token.displayEmail or just use token.id for DB queries
+            }
+          }
+        } catch (error) {
+          // cookies() might not be available in some contexts (e.g. build time)
+          console.error("Error reading impersonation cookie:", error);
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
         session.user.isAdmin = token.isAdmin as boolean;
+        session.user.impersonatedFromEmail = token.impersonatedFromEmail as string;
+        
+        // If impersonating, we might want to fetch the target user's email/name for the UI
+        if (token.impersonatedFromEmail && token.id) {
+           const { prisma } = await import("./prisma");
+           const targetUser = await prisma.user.findUnique({ where: { id: token.id } });
+           if (targetUser) {
+             session.user.email = targetUser.email;
+             session.user.name = targetUser.name;
+           }
+        }
       }
       return session;
     },

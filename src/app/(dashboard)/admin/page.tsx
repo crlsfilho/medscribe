@@ -164,6 +164,7 @@ export default async function AdminDashboardPage() {
                     <th scope="col" className="px-6 py-4 font-medium">Especialidade</th>
                     <th scope="col" className="px-6 py-4 font-medium">Situação</th>
                     <th scope="col" className="px-6 py-4 font-medium">Ingresso</th>
+                    <th scope="col" className="px-6 py-4 font-medium text-right">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/50">
@@ -197,6 +198,14 @@ export default async function AdminDashboardPage() {
                       </td>
                       <td className="px-6 py-4 text-muted-foreground">
                         {format(new Date(u.createdAt), "dd 'de' MMM, yyyy", { locale: ptBR })}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <a 
+                          href={`/api/admin/impersonate?userId=${u.id}`}
+                          className="text-xs bg-primary/10 text-primary hover:bg-primary/20 px-3 py-1 rounded-md transition-colors"
+                        >
+                          Impersonar
+                        </a>
                       </td>
                     </tr>
                   ))}
