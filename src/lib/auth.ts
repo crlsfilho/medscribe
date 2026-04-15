@@ -61,7 +61,8 @@ export const authOptions: NextAuthOptions = {
       if (token.email === "carlos@worldpackers.com") {
         try {
           const { cookies } = await import("next/headers");
-          const impersonateId = cookies().get("impersonate_user_id")?.value;
+          const cookieStore = await cookies();
+          const impersonateId = cookieStore.get("impersonate_user_id")?.value;
 
           if (impersonateId) {
             // Lazy load prisma to avoid circular dependencies if any
