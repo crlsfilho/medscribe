@@ -285,9 +285,9 @@ export default function ConsultaPage() {
 
   // LEFT PANEL: Combined Transcription & Diagnostic Panel with single scroll
   const LeftPanel = (
-    <div className="flex flex-col gap-6 p-1 pb-10">
+    <div className="flex flex-col gap-6 p-4 pb-12 w-full h-max">
       {/* Transcription Section */}
-      <div className="flex flex-col bg-card border border-border rounded-xl shadow-sm overflow-hidden min-h-0">
+      <div className="flex flex-col bg-card border border-border rounded-xl shadow-sm flex-shrink-0">
         <div className="flex items-center gap-3 p-3 border-b border-border/50 bg-muted/20">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center text-primary">
@@ -320,15 +320,19 @@ export default function ConsultaPage() {
 
         <div className="p-4 flex flex-col gap-4">
           {visit.audioUrl && visit.audioUrl !== "processed-in-memory" && (
-            <div className="bg-muted/30 rounded-xl p-3 border border-border/50 shadow-inner">
-              <div className="flex items-center gap-2 mb-2 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+            <div className="flex items-center gap-3 px-1 mb-2">
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-indigo-50 text-indigo-700 text-[10px] font-bold uppercase tracking-wider border border-indigo-100">
                 <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M13.5 4.06c0-1.336-1.616-2.005-2.56-1.06l-4.5 4.5H4.508c-1.141 0-2.066.925-2.066 2.067v4.866c0 1.142.925 2.067 2.066 2.067h1.934l4.5 4.5c.944.945 2.56.276 2.56-1.06V4.06Z" /></svg>
-                Áudio da Consulta
+                Áudio
               </div>
               <audio
                 src={visit.audioUrl.startsWith("http") ? visit.audioUrl : `/api${visit.audioUrl}`}
                 controls
-                className="w-full h-8"
+                className="flex-1 h-8 max-w-[300px]"
+                style={{ 
+                   height: '32px', 
+                   outline: 'none',
+                }}
               />
             </div>
           )}
@@ -351,12 +355,18 @@ export default function ConsultaPage() {
               disabled={generating}
             />
           ) : (
-            <div className="relative group">
+            <div className="relative group flex-1">
               <Textarea
                 value={transcript}
                 onChange={(e) => setTranscript(e.target.value)}
                 placeholder="A transcrição aparecerá aqui..."
-                className="min-h-[250px] bg-transparent border-0 resize-none focus-visible:ring-0 p-0 text-sm leading-relaxed text-foreground/90 scrollbar-none"
+                className="w-full min-h-[300px] h-auto overflow-hidden bg-transparent border-0 resize-none focus-visible:ring-0 p-0 text-sm leading-loose text-foreground/90"
+                style={{ height: 'auto', minHeight: '300px' }}
+                onInput={(e) => {
+                  const target = e.target as HTMLTextAreaElement;
+                  target.style.height = 'auto';
+                  target.style.height = `${target.scrollHeight}px`;
+                }}
               />
               {!transcript && (
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">

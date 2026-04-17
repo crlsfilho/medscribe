@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useKeepAlive } from "@/lib/use-keep-alive";
 
 interface ContinueRecordingProps {
   visitId: string;
@@ -28,8 +29,8 @@ export function ContinueRecording({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const rotationTimerRef = useRef<NodeJS.Timeout | null>(null);
   const chunkIndexRef = useRef(0);
+  const { enableKeepAlive, disableKeepAlive } = useKeepAlive();
 
   const SEGMENT_MS = 3 * 60 * 1000;
 
@@ -72,49 +73,54 @@ export function ContinueRecording({
 
   const stopAllTimers = () => {
     if (timerRef.current) clearInterval(timerRef.current);
-    if (rotationTimerRef.current) clearTimeout(rotationTimerRef.current);
   };
 
   const stopRecording = useCallback(async () => {
     stopAllTimers();
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+    disableKeepAlive();
+    
+    // Explicitly request remaining data before stopping
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+      mediaRecorderRef.current.requestData();
+      // Allow slight delay to let data event propagate before stop
+      setTimeout(() => {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+          mediaRecorderRef.current.stop();
+        }
+      }, 500);
+    } else if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
       mediaRecorderRef.current.stop();
     }
+    
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(t => t.stop());
       streamRef.current = null;
     }
     setPhase("done");
     setIsPaused(false);
-  }, []);
+  }, [disableKeepAlive]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const startNewSegment = useCallback(() => {
+  // We don't rotate MediaRecorders anymore. We create it once and requestData on interval.
+  const setupMediaRecorder = useCallback(() => {
     if (!streamRef.current) return;
     const mimeType = getSupportedMimeType();
     if (!mimeType) { toast.error("Formato de áudio não suportado."); return; }
 
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
-      mediaRecorderRef.current.stop();
-    }
-
     try {
       const audioOnlyStream = new MediaStream(streamRef.current.getAudioTracks());
+      // Timeslice will trigger ondataavailable periodically
       const recorder = new MediaRecorder(audioOnlyStream, { mimeType });
-      const segmentIdx = chunkIndexRef.current;
 
       recorder.ondataavailable = async (e) => {
         if (e.data.size > 0) {
-          const pulse = await uploadChunk(e.data, segmentIdx);
+          const idx = chunkIndexRef.current++;
+          const pulse = await uploadChunk(e.data, idx);
           if (pulse) setCurrentPulse(pulse);
         }
       };
 
-      recorder.start();
+      recorder.start(SEGMENT_MS); // Emit data every SEGMENT_MS
       mediaRecorderRef.current = recorder;
-      chunkIndexRef.current += 1;
-
-      rotationTimerRef.current = setTimeout(() => startNewSegment(), SEGMENT_MS);
     } catch (err) {
       console.error("Failed to create MediaRecorder", err);
       toast.error("Erro ao iniciar gravador.");
@@ -124,20 +130,23 @@ export function ContinueRecording({
 
   const pauseRecording = useCallback(() => {
     if (mediaRecorderRef.current?.state === "recording") {
+      // Force dump of data before pausing
+      mediaRecorderRef.current.requestData();
       mediaRecorderRef.current.pause();
       stopAllTimers();
+      disableKeepAlive();
       setIsPaused(true);
     }
-  }, []);
+  }, [disableKeepAlive]);
 
   const resumeRecording = useCallback(() => {
     if (mediaRecorderRef.current?.state === "paused") {
       mediaRecorderRef.current.resume();
+      enableKeepAlive();
       timerRef.current = setInterval(() => setDuration(prev => prev + 1), 1000);
-      rotationTimerRef.current = setTimeout(() => startNewSegment(), SEGMENT_MS);
       setIsPaused(false);
     }
-  }, [startNewSegment, SEGMENT_MS]);
+  }, [enableKeepAlive]);
 
   const startRecording = async () => {
     try {
@@ -152,7 +161,8 @@ export function ContinueRecording({
       setCurrentPulse(null);
       setPhase("recording");
 
-      startNewSegment();
+      enableKeepAlive();
+      setupMediaRecorder();
       timerRef.current = setInterval(() => setDuration(prev => prev + 1), 1000);
     } catch {
       toast.error("Erro ao acessar microfone. Verifique permissões.");
@@ -163,6 +173,7 @@ export function ContinueRecording({
   useEffect(() => {
     return () => {
       stopAllTimers();
+      disableKeepAlive();
       if (mediaRecorderRef.current?.state !== "inactive") mediaRecorderRef.current?.stop();
       streamRef.current?.getTracks().forEach(t => t.stop());
     };

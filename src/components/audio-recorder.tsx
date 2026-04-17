@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { useKeepAlive } from "@/lib/use-keep-alive";
 
 interface AudioRecorderProps {
   onAudioReady: (audioBlob: Blob) => void;
@@ -20,6 +21,7 @@ export function AudioRecorder({ onAudioReady, onRecordingStart, disabled }: Audi
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const { enableKeepAlive, disableKeepAlive } = useKeepAlive();
 
   const getSupportedMimeType = () => {
     const types = ["audio/mp4", "audio/webm;codecs=opus", "audio/webm", "audio/ogg"];
@@ -60,12 +62,14 @@ export function AudioRecorder({ onAudioReady, onRecordingStart, disabled }: Audi
         onAudioReady(audioBlob);
 
         stream.getTracks().forEach((track) => track.stop());
+        disableKeepAlive();
       };
 
       mediaRecorder.start(1000);
       setIsRecording(true);
       setIsPaused(false);
       setDuration(0);
+      enableKeepAlive();
 
       onRecordingStart?.();
 
@@ -81,26 +85,29 @@ export function AudioRecorder({ onAudioReady, onRecordingStart, disabled }: Audi
   const pauseRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording && !isPaused) {
       mediaRecorderRef.current.pause();
+      disableKeepAlive();
       setIsPaused(true);
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
     }
-  }, [isRecording, isPaused]);
+  }, [isRecording, isPaused, disableKeepAlive]);
 
   const resumeRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording && isPaused) {
       mediaRecorderRef.current.resume();
+      enableKeepAlive();
       setIsPaused(false);
       timerRef.current = setInterval(() => {
         setDuration((d) => d + 1);
       }, 1000);
     }
-  }, [isRecording, isPaused]);
+  }, [isRecording, isPaused, enableKeepAlive]);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording) {
+      disableKeepAlive();
       mediaRecorderRef.current.stop();
       setIsRecording(false);
       setIsPaused(false);
@@ -110,7 +117,7 @@ export function AudioRecorder({ onAudioReady, onRecordingStart, disabled }: Audi
         timerRef.current = null;
       }
     }
-  }, [isRecording]);
+  }, [isRecording, disableKeepAlive]);
 
   const handleFileUpload = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -139,11 +146,18 @@ export function AudioRecorder({ onAudioReady, onRecordingStart, disabled }: Audi
     if (audioUrl) {
       URL.revokeObjectURL(audioUrl);
     }
+    disableKeepAlive();
     setAudioUrl(null);
     setDuration(0);
     setError(null);
     chunksRef.current = [];
   };
+
+  useEffect(() => {
+    return () => {
+      disableKeepAlive();
+    };
+  }, [disableKeepAlive]);
 
   return (
     <div className="space-y-6">

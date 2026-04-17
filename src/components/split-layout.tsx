@@ -104,7 +104,7 @@ export function SplitLayout({ leftPanel, children, rightPanel }: SplitLayoutProp
                 className={`transition-all duration-300 ease-in-out flex flex-col ${isLeftOpen ? "w-[40%] min-w-[350px] max-w-[500px]" : "w-12 bg-muted/30 rounded-xl"
                     }`}
             >
-                <div className={`flex-1 overflow-hidden bg-card border border-border rounded-xl shadow-sm relative flex flex-col ${isLeftOpen ? "overflow-y-auto custom-scrollbar" : ""}`}>
+                <div className={`flex-1 overflow-hidden bg-card border-none rounded-xl shadow-sm relative flex flex-col ${isLeftOpen ? "overflow-y-auto custom-scrollbar" : ""}`}>
                     {isLeftOpen ? leftPanel : (
                         <button onClick={() => setIsLeftOpen(true)} className="w-full h-full flex flex-col items-center pt-8 gap-4 text-muted-foreground hover:text-primary transition-colors">
                             <span className="rotate-90 whitespace-nowrap text-sm font-medium tracking-wide">Transcrição</span>

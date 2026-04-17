@@ -149,9 +149,9 @@ export function DiagnosticPanel({ transcript, soapContext, className, isEmbedded
     };
 
     return (
-        <div className={`flex flex-col h-full ${!isEmbedded ? "bg-card rounded-xl border border-border overflow-hidden" : ""} ${className || ""}`}>
+        <div className={`flex flex-col h-full ${!isEmbedded ? "bg-card rounded-xl border border-border overflow-hidden" : "pt-4 border-t border-border/30"} ${className || ""}`}>
             {/* Header */}
-            <div className="p-4 border-b border-border bg-muted/20 flex items-center justify-between">
+            <div className={`p-4 flex items-center justify-between ${!isEmbedded ? "border-b border-border bg-muted/20" : ""}`}>
                 <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
