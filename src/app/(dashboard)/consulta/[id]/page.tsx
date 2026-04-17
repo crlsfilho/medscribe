@@ -283,11 +283,11 @@ export default function ConsultaPage() {
 
   // --- COMPONENT PARTS FOR SPLIT VIEW ---
 
-  // LEFT PANEL: Combined Transcription & Diagnostic Panel with single scroll
+  // LEFT PANEL: Transcription & Diagnostic Panel (50/50 Split)
   const LeftPanel = (
-    <div className="flex flex-col gap-6 p-4 pb-12 w-full h-max">
-      {/* Transcription Section */}
-      <div className="flex flex-col bg-card border border-border rounded-xl shadow-sm flex-shrink-0">
+    <div className="h-full flex flex-col gap-4 overflow-hidden pt-1">
+      {/* Transcription Section (50%) */}
+      <div className="flex flex-col bg-card border border-border rounded-xl shadow-sm min-h-0 flex-1">
         <div className="flex items-center gap-3 p-3 border-b border-border/50 bg-muted/20">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center text-primary">
@@ -318,7 +318,7 @@ export default function ConsultaPage() {
           </div>
         </div>
 
-        <div className="p-4 flex flex-col gap-4">
+        <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 custom-scrollbar">
           {visit.audioUrl && visit.audioUrl !== "processed-in-memory" && (
             <div className="flex items-center gap-3 px-1 mb-2">
               <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-indigo-50 text-indigo-700 text-[10px] font-bold uppercase tracking-wider border border-indigo-100">
@@ -328,11 +328,7 @@ export default function ConsultaPage() {
               <audio
                 src={visit.audioUrl.startsWith("http") ? visit.audioUrl : `/api${visit.audioUrl}`}
                 controls
-                className="flex-1 h-8 max-w-[300px]"
-                style={{ 
-                   height: '32px', 
-                   outline: 'none',
-                }}
+                className="w-full max-w-[280px] h-10 outline-none"
               />
             </div>
           )}
@@ -355,18 +351,12 @@ export default function ConsultaPage() {
               disabled={generating}
             />
           ) : (
-            <div className="relative group flex-1">
+            <div className="relative group flex-1 flex flex-col min-h-0">
               <Textarea
                 value={transcript}
                 onChange={(e) => setTranscript(e.target.value)}
                 placeholder="A transcrição aparecerá aqui..."
-                className="w-full min-h-[300px] h-auto overflow-hidden bg-transparent border-0 resize-none focus-visible:ring-0 p-0 text-sm leading-loose text-foreground/90"
-                style={{ height: 'auto', minHeight: '300px' }}
-                onInput={(e) => {
-                  const target = e.target as HTMLTextAreaElement;
-                  target.style.height = 'auto';
-                  target.style.height = `${target.scrollHeight}px`;
-                }}
+                className="flex-1 w-full bg-transparent border-0 resize-none focus-visible:ring-0 p-0 text-sm leading-loose text-foreground/90 custom-scrollbar"
               />
               {!transcript && (
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
@@ -378,17 +368,19 @@ export default function ConsultaPage() {
         </div>
       </div>
 
-      {/* Hipóteses Diagnósticas Section */}
-      <DiagnosticPanel
-        transcript={transcript}
-        soapContext={{
-          chiefComplaint: soap.subjective?.chiefComplaint,
-          age: visit?.patient?.age,
-          sex: visit?.patient?.sex,
-          vitals: soap.objective?.vitalSigns
-        }}
-        isEmbedded
-      />
+      {/* Hipóteses Diagnósticas Section (50%) */}
+      <div className="flex-1 min-h-0 flex flex-col">
+        <DiagnosticPanel
+          transcript={transcript}
+          soapContext={{
+            chiefComplaint: soap.subjective?.chiefComplaint,
+            age: visit?.patient?.age,
+            sex: visit?.patient?.sex,
+            vitals: soap.objective?.vitalSigns
+          }}
+          className="h-full"
+        />
+      </div>
     </div>
   );
 
