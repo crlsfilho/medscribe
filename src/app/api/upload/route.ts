@@ -62,13 +62,30 @@ export async function POST(request: NextRequest) {
     const safeExt = ALLOWED_EXTENSIONS.includes(ext) ? ext : "webm";
     const filename = `audio/${visitId}-${Date.now()}.${safeExt}`;
 
-    const blob = await put(filename, audioFile, {
-      access: "public", // TODO: migrate to signed URLs when Vercel Blob supports private reads
-      contentType: fileType,
-    });
+    let audioUrl = "";
+    if (process.env.BLOB_READ_WRITE_TOKEN) {
+      const blob = await put(filename, audioFile, {
+        access: "public", // TODO: migrate to signed URLs when Vercel Blob supports private reads
+        contentType: fileType,
+      });
+      audioUrl = blob.url;
+    } else {
+      // Fallback for local development
+      const fs = await import("fs");
+      const path = await import("path");
+      const uploadDir = path.join(process.cwd(), "public", "uploads", "audio");
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      
+      const bytes = await audioFile.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+      const filepath = path.join(uploadDir, filename.replace('audio/', ''));
+      fs.writeFileSync(filepath, buffer);
+      audioUrl = `/uploads/audio/${filename.replace('audio/', '')}`;
+    }
 
     // Update visit with audio URL
-    const audioUrl = blob.url;
     await prisma.visit.update({
       where: { id: visitId },
       data: { audioUrl },

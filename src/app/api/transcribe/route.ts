@@ -57,6 +57,18 @@ export async function POST(request: NextRequest) {
           contentType: "audio/webm",
         });
         audioUrl = blob.url;
+      } else {
+        // Fallback for local development
+        const fs = await import("fs");
+        const path = await import("path");
+        const uploadDir = path.join(process.cwd(), "public", "uploads", "audio");
+        if (!fs.existsSync(uploadDir)) {
+          fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        const filename = `${visitId}-${Date.now()}.webm`;
+        const filepath = path.join(uploadDir, filename);
+        fs.writeFileSync(filepath, audioBuffer);
+        audioUrl = `/uploads/audio/${filename}`;
       }
 
       // Update visit with audio URL
