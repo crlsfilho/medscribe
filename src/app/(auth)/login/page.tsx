@@ -4,6 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import posthog from "posthog-js";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,11 +30,15 @@ export default function LoginPage() {
 
       if (result?.error) {
         setError("Credenciais invalidas. Verifique seu email e senha.");
+        posthog.capture("login_failed", { email });
       } else {
+        posthog.identify(email, { email });
+        posthog.capture("user_logged_in", { email });
         router.push("/");
         router.refresh();
       }
-    } catch {
+    } catch (err) {
+      posthog.captureException(err);
       setError("Erro ao conectar. Tente novamente.");
     } finally {
       setLoading(false);

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import Link from "next/link";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -200,12 +201,20 @@ export default async function AdminDashboardPage() {
                         {format(new Date(u.createdAt), "dd 'de' MMM, yyyy", { locale: ptBR })}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <a 
-                          href={`/api/admin/impersonate?userId=${u.id}`}
-                          className="text-xs bg-primary/10 text-primary hover:bg-primary/20 px-3 py-1 rounded-md transition-colors"
-                        >
-                          Impersonar
-                        </a>
+                        <div className="flex items-center justify-end gap-2">
+                          <Link 
+                            href={`/admin/users/${u.id}`}
+                            className="text-xs bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-200 px-3 py-1.5 rounded-md transition-colors whitespace-nowrap"
+                          >
+                            Ver Perfil
+                          </Link>
+                          <a 
+                            href={`/api/admin/impersonate?userId=${u.id}`}
+                            className="text-xs bg-primary/10 text-primary hover:bg-primary/20 px-3 py-1.5 rounded-md transition-colors"
+                          >
+                            Impersonar
+                          </a>
+                        </div>
                       </td>
                     </tr>
                   ))}

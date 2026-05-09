@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import OpenAI from "openai";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
@@ -117,6 +118,15 @@ export async function POST(request: NextRequest) {
         });
 
         const data = JSON.parse(response.choices[0]?.message?.content || "{}");
+
+        const posthog = getPostHogClient();
+        posthog.capture({
+          distinctId: session.user.email ?? session.user.id,
+          event: "document_generated",
+          properties: { document_type: type },
+        });
+        await posthog.shutdown();
+
         return NextResponse.json({ data });
 
     } catch (error) {

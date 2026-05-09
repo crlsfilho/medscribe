@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 const registerSchema = z.object({
   email: z.string().email("Email inválido"),
@@ -36,6 +37,18 @@ export async function POST(request: NextRequest) {
         name,
       },
     });
+
+    const posthog = getPostHogClient();
+    posthog.identify({
+      distinctId: user.email,
+      properties: { email: user.email, name: user.name ?? undefined },
+    });
+    posthog.capture({
+      distinctId: user.email,
+      event: "user_registered_server",
+      properties: { user_id: user.id, email: user.email, name: user.name ?? undefined },
+    });
+    await posthog.shutdown();
 
     return NextResponse.json({
       id: user.id,

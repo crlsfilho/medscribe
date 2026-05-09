@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import posthog from "posthog-js";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -106,6 +107,13 @@ function NovaConsultaContent() {
       const visit = await visitResponse.json();
       setVisitId(visit.id);
 
+      posthog.capture("visit_started", {
+        visit_id: visit.id,
+        recording_mode: recordingMode,
+        is_existing_patient: !!existingPatientId,
+        from_appointment: !!appointmentId,
+      });
+
       // Update appointment status if starting from scheduled appointment
       if (appointmentId) {
         try {
@@ -168,8 +176,30 @@ function NovaConsultaContent() {
     }
   };
 
-  const handleRecordingComplete = () => {
+  const handleRecordingComplete = async (finalAudioBlob?: Blob) => {
     setIsRecordingComplete(true);
+    posthog.capture("recording_completed", {
+      visit_id: visitId,
+      chunks_uploaded: uploadedChunks,
+      has_audio_blob: !!finalAudioBlob,
+    });
+    
+    if (finalAudioBlob && visitId) {
+      try {
+        const formData = new FormData();
+        const ext = finalAudioBlob.type.includes('mp4') ? 'm4a' : 'webm';
+        formData.append("audio", finalAudioBlob, `consulta_completa.${ext}`);
+        formData.append("visitId", visitId);
+        
+        // This uploads directly via putting. It sets visit.audioUrl.
+        await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+      } catch (err) {
+        console.error("Failed to upload final full audio", err);
+      }
+    }
   };
 
   const handleProcessAudio = async () => {

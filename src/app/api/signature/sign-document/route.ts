@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getVIDaaSService } from "@/lib/vidaas";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 /**
  * POST /api/signature/sign-document
@@ -146,6 +147,17 @@ export async function POST(request: NextRequest) {
         details: `Documento ${documentType} assinado digitalmente via VIDaaS`,
       },
     });
+
+    const posthog = getPostHogClient();
+    posthog.capture({
+      distinctId: session.user.email ?? session.user.id,
+      event: "document_signed",
+      properties: {
+        visit_id: visitId,
+        document_type: documentType,
+      },
+    });
+    await posthog.shutdown();
 
     return NextResponse.json({
       success: true,

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
+import posthog from "posthog-js";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,9 +61,13 @@ export default function RegisterPage() {
         return;
       }
 
+      posthog.identify(email, { email, name });
+      posthog.capture("user_registered", { email, name });
+
       // Hard redirect to guarantee session propagation in NextAuth
       window.location.href = "/onboarding";
-    } catch {
+    } catch (err) {
+      posthog.captureException(err);
       setError("Erro ao conectar. Tente novamente.");
     } finally {
       setLoading(false);

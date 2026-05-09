@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
+import posthog from "posthog-js";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { SOAPEditor } from "@/components/soap-editor";
@@ -156,8 +157,10 @@ export default function ConsultaPage() {
         throw new Error("Erro ao salvar");
       }
 
+      posthog.capture("visit_saved", { visit_id: visitId });
       toast.success("Consulta salva com sucesso!");
     } catch (err) {
+      posthog.captureException(err);
       toast.error(err instanceof Error ? err.message : "Erro ao salvar");
     } finally {
       setSaving(false);
@@ -221,6 +224,7 @@ export default function ConsultaPage() {
     a.click();
     URL.revokeObjectURL(url);
 
+    posthog.capture("soap_exported_pdf", { visit_id: visitId });
     toast.success("PDF exportado com sucesso!");
   };
 

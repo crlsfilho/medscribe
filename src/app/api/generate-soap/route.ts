@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { retryGenerateSOAP, diarizeTranscription } from "@/lib/llm";
 import { normalizeTerms } from "@/lib/normalize";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -103,6 +104,17 @@ export async function POST(request: NextRequest) {
         details: "Nota SOAP gerada com sucesso",
       },
     });
+
+    const posthog = getPostHogClient();
+    posthog.capture({
+      distinctId: session.user.email ?? session.user.id,
+      event: "soap_generated",
+      properties: {
+        visit_id: visitId,
+        suggestions_count: suggestions.length,
+      },
+    });
+    await posthog.shutdown();
 
     return NextResponse.json({
       soap: soapData,

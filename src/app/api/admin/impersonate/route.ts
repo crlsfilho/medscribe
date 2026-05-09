@@ -24,7 +24,8 @@ export async function GET(request: NextRequest) {
   const response = NextResponse.redirect(new URL("/dashboard", request.url));
 
   if (stop) {
-    response.cookies.delete("impersonate_user_id");
+    const cookieStore = await cookies();
+    cookieStore.delete("impersonate_user_id");
   } else if (userId) {
     // Set cookie for 8 hours (same as session maxAge)
     response.cookies.set("impersonate_user_id", userId, {

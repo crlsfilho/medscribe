@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import posthog from "posthog-js";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -168,6 +169,12 @@ export function OnboardingFlow({ onComplete }: { onComplete: () => void }) {
 
       toast.success("Perfil completo! 🎉", {
         description: "Bem-vindo ao Steto.",
+      });
+
+      posthog.capture("onboarding_completed", {
+        specialty: data.specialty,
+        has_crm: !!data.crm,
+        has_clinic: !!data.clinicName,
       });
 
       onComplete();

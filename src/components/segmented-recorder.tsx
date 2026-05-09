@@ -3,10 +3,11 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useKeepAlive } from "@/lib/use-keep-alive";
 
 interface SegmentedAudioRecorderProps {
     onAudioSegment: (blob: Blob, index: number) => Promise<string | undefined>;
-    onComplete: () => void;
+    onComplete: (finalAudioBlob?: Blob) => void;
     disabled?: boolean;
     recordingMode?: "presencial" | "telemedicina";
 }
@@ -21,8 +22,9 @@ export function SegmentedAudioRecorder({ onAudioSegment, onComplete, disabled, r
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const streamRef = useRef<MediaStream | null>(null);
     const timerRef = useRef<NodeJS.Timeout | null>(null);
-    const rotationTimerRef = useRef<NodeJS.Timeout | null>(null);
-    const chunkIndexRef = useRef(0); // Ref to avoid closure staleness in timers
+    const chunkIndexRef = useRef(0);
+    const allChunksRef = useRef<Blob[]>([]);
+    const { enableKeepAlive, disableKeepAlive } = useKeepAlive();
 
     // Duration of each segment (3 minutes)
     const SEGMENT_MS = 3 * 60 * 1000;
@@ -46,54 +48,49 @@ export function SegmentedAudioRecorder({ onAudioSegment, onComplete, disabled, r
 
         // Clear timers
         if (timerRef.current) clearInterval(timerRef.current);
-        if (rotationTimerRef.current) clearTimeout(rotationTimerRef.current);
+        disableKeepAlive();
 
-        // Stop current recorder
-        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        // Stop current recorder. The 'dataavailable' will fire one last time.
+        // We handle compiling the blob in mediaRecorder.onstop
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+            mediaRecorderRef.current.requestData();
+            setTimeout(() => {
+               if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+                   mediaRecorderRef.current.stop();
+               }
+            }, 500);
+        } else if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
             mediaRecorderRef.current.stop();
-            // processing of the final chunk happens in ondataavailable
-        }
-
-        // Stop stream
-        if (streamRef.current) {
-            streamRef.current.getTracks().forEach(track => track.stop());
-            streamRef.current = null;
         }
 
         setIsRecording(false);
         setIsPaused(false);
-        // We do NOT call onComplete here immediately because the last chunk might still be uploading.
-        // We wait a tick or let the user click "Finish" which called this.
-        onComplete();
-    }, [onComplete]);
+    }, [disableKeepAlive]);
 
     const pauseRecording = useCallback(() => {
         if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+            mediaRecorderRef.current.requestData();
             mediaRecorderRef.current.pause();
             if (timerRef.current) clearInterval(timerRef.current);
-            if (rotationTimerRef.current) clearTimeout(rotationTimerRef.current);
+            disableKeepAlive();
             setIsPaused(true);
         }
-    }, []);
+    }, [disableKeepAlive]);
 
     const resumeRecording = useCallback(() => {
         if (mediaRecorderRef.current && mediaRecorderRef.current.state === "paused") {
             mediaRecorderRef.current.resume();
-            
+            enableKeepAlive();
             // Resume timers
             timerRef.current = setInterval(() => {
                 setDuration(prev => prev + 1);
             }, 1000);
 
-            rotationTimerRef.current = setTimeout(() => {
-                startNewSegment();
-            }, SEGMENT_MS);
-
             setIsPaused(false);
         }
-    }, [SEGMENT_MS]);
+    }, [enableKeepAlive]);
 
-    const startNewSegment = useCallback(() => {
+    const setupMediaRecorder = useCallback(() => {
         if (!streamRef.current) return;
 
         const mimeType = getSupportedMimeType();
@@ -102,50 +99,46 @@ export function SegmentedAudioRecorder({ onAudioSegment, onComplete, disabled, r
             return;
         }
 
-        console.log(`Starting segment ${chunkIndexRef.current} with mime: ${mimeType}`);
-
-        // Stop previous if active
-        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
-            // This will trigger 'dataavailable' for the ending segment
-            mediaRecorderRef.current.stop();
-        }
-
         try {
             // Create a dedicated audio-only stream to avoid MIME type clash with video tracks
             const audioOnlyStream = new MediaStream(streamRef.current.getAudioTracks());
             const recorder = new MediaRecorder(audioOnlyStream, { mimeType });
 
-            // Current segment index for this recorder instance
-            const currentSegmentIdx = chunkIndexRef.current;
-
             recorder.ondataavailable = async (e) => {
                 if (e.data.size > 0) {
+                    allChunksRef.current.push(e.data);
+                    const currentSegmentIdx = chunkIndexRef.current++;
+                    
                     console.log(`Segment ${currentSegmentIdx} data available: ${e.data.size} bytes`);
                     const pulse = await onAudioSegment(e.data, currentSegmentIdx);
                     if (pulse) {
                         setCurrentPulse(pulse);
                     }
+                    setChunkIndex(currentSegmentIdx + 1);
                 }
             };
+            
+            recorder.onstop = () => {
+                const finalBlob = new Blob(allChunksRef.current, { type: mimeType });
+                
+                // Stop stream
+                if (streamRef.current) {
+                    streamRef.current.getTracks().forEach(track => track.stop());
+                    streamRef.current = null;
+                }
+                
+                onComplete(finalBlob);
+            };
 
-            recorder.start();
+            recorder.start(SEGMENT_MS);
             mediaRecorderRef.current = recorder;
-
-            // Advance index for the NEXT segment
-            chunkIndexRef.current += 1;
-            setChunkIndex(chunkIndexRef.current);
-
-            // Schedule next rotation
-            rotationTimerRef.current = setTimeout(() => {
-                startNewSegment();
-            }, SEGMENT_MS);
 
         } catch (err) {
             console.error("Failed to create MediaRecorder", err);
             toast.error("Erro ao iniciar gravador.");
             stopRecording();
         }
-    }, [onAudioSegment, SEGMENT_MS, stopRecording]); // Added stopRecording to dependencies
+    }, [onAudioSegment, SEGMENT_MS, stopRecording, onComplete]);
 
     const startRecording = async () => {
         try {
@@ -234,10 +227,12 @@ export function SegmentedAudioRecorder({ onAudioSegment, onComplete, disabled, r
             setDuration(0);
 
             chunkIndexRef.current = 0;
+            allChunksRef.current = [];
             setChunkIndex(0);
 
-            // Start first segment
-            startNewSegment();
+            // Setup and start recorder
+            enableKeepAlive();
+            setupMediaRecorder();
 
             // UI Duration Timer
             timerRef.current = setInterval(() => {
@@ -269,6 +264,7 @@ export function SegmentedAudioRecorder({ onAudioSegment, onComplete, disabled, r
 
     useEffect(() => {
         return () => {
+            disableKeepAlive();
             if (isRecording) stopRecording();
         };
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
