@@ -8,17 +8,12 @@ import { PostHogProvider } from "posthog-js/react";
 import PostHogPageView from "./posthog-pageview";
 
 if (typeof window !== "undefined") {
-  console.log("[PostHog] iniciando init...");
   posthog.init("phc_tP5WBcUgUUqNGRVTMxB4PCLgrx55a3UjVnmogi73fQMW", {
     api_host: "https://us.i.posthog.com",
     ui_host: "https://us.posthog.com",
     capture_pageview: false,
     capture_exceptions: true,
-    loaded: (ph) => {
-      console.log("[PostHog] loaded, token:", ph.config.token);
-    },
   });
-  console.log("[PostHog] init chamado, token no config:", posthog.config?.token);
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
