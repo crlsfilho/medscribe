@@ -155,7 +155,6 @@ export function AIBrainstorm() {
                             <div
                                 className={cn(
                                     "px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide border",
-                                    // @ts-expect-error mode is narrowed but indexing is safe
                                     activeModeColor[mode] || "bg-gray-100"
                                 )}
                             >
