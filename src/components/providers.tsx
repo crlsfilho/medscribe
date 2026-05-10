@@ -9,7 +9,7 @@ import PostHogPageView from "./posthog-pageview";
 
 if (typeof window !== "undefined") {
   posthog.init("phc_tP5WBcUgUUqNGRVTMxB4PCLgrx55a3UjVnmogi73fQMW", {
-    api_host: "https://us.i.posthog.com",
+    api_host: "/ingest",
     ui_host: "https://us.posthog.com",
     capture_pageview: false,
     capture_exceptions: true,
