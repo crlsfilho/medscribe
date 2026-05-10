@@ -8,7 +8,7 @@ import { PostHogProvider } from "posthog-js/react";
 import PostHogPageView from "./posthog-pageview";
 
 if (typeof window !== "undefined") {
-  posthog.init(process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN!, {
+  posthog.init("phc_tP5WBcUgUUqNGRVTMxB4PCLgrx55a3UjVnmogi73fQMW", {
     api_host: "/ingest",
     ui_host: "https://us.posthog.com",
     capture_pageview: false,
