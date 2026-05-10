@@ -143,9 +143,11 @@ export function OnboardingFlow({ onComplete }: { onComplete: () => void }) {
     try {
       const response = await fetch("/api/user/skip-onboarding", { method: "POST" });
       if (!response.ok) throw new Error("Erro ao pular");
+      posthog.capture("onboarding_skipped", { step_at_skip: currentStep });
       toast.success("Você pode completar o cadastro depois nas Configurações!", { duration: 4500 });
       onComplete();
     } catch (err) {
+      posthog.captureException(err);
       toast.error("Erro ao pular o onboarding.");
     } finally {
       setLoading(false);

@@ -96,8 +96,10 @@ export default function ConsultaPage() {
       const data = await response.json();
       setSoap(data.soap);
       setSuggestions(data.suggestions || []);
+      posthog.capture("soap_regenerated", { visit_id: visitId });
       toast.success("Prontuário atualizado com o novo conteúdo!");
     } catch (err) {
+      posthog.captureException(err);
       toast.error(err instanceof Error ? err.message : "Erro ao re-gerar SOAP");
     } finally {
       setGenerating(false);
@@ -262,6 +264,13 @@ export default function ConsultaPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ accepted: true }),
       });
+      const suggestion = suggestions.find((s) => s.id === id);
+      posthog.capture("normalization_suggestion_accepted", {
+        visit_id: visitId,
+        suggestion_id: id,
+        suggestion_type: suggestion?.type,
+        normalized_code: suggestion?.normalizedCode,
+      });
     } catch {
       console.error("Erro ao aceitar sugestao");
     }
@@ -271,6 +280,12 @@ export default function ConsultaPage() {
     try {
       await fetch(`/api/suggestions/${id}`, {
         method: "DELETE",
+      });
+      const suggestion = suggestions.find((s) => s.id === id);
+      posthog.capture("normalization_suggestion_rejected", {
+        visit_id: visitId,
+        suggestion_id: id,
+        suggestion_type: suggestion?.type,
       });
       setSuggestions((prev) => prev.filter((s) => s.id !== id));
     } catch {
@@ -423,7 +438,7 @@ export default function ConsultaPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setShowDocModal(true)}>
+              <DropdownMenuItem onClick={() => { setShowDocModal(true); posthog.capture("document_modal_opened", { visit_id: visitId }); }}>
                 <svg className="w-4 h-4 mr-2 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                 Emitir Documento
               </DropdownMenuItem>

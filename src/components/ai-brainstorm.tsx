@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import posthog from "posthog-js";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -27,6 +28,7 @@ export function AIBrainstorm() {
         setQuery("");
         setLoading(true);
 
+        posthog.capture("ai_brainstorm_queried", { mode });
         try {
             const res = await fetch("/api/medical-qa", {
                 method: "POST",
@@ -42,6 +44,7 @@ export function AIBrainstorm() {
                 { role: "assistant", content: data.answer },
             ]);
         } catch (err) {
+            posthog.captureException(err);
             setMessages((prev) => [
                 ...prev,
                 {
@@ -152,7 +155,7 @@ export function AIBrainstorm() {
                             <div
                                 className={cn(
                                     "px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide border",
-                                    // @ts-ignore
+                                    // @ts-expect-error mode is narrowed but indexing is safe
                                     activeModeColor[mode] || "bg-gray-100"
                                 )}
                             >

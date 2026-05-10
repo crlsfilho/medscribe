@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
+import posthog from "posthog-js";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/calendar";
 import { MedicalNews } from "@/components/medical-news";
@@ -93,10 +94,12 @@ export default function DashboardPage() {
 
             if (response.ok) {
                 setVisits(visits.filter((v) => v.id !== id));
+                posthog.capture("visit_deleted", { visit_id: id });
             } else {
                 alert("Erro ao apagar consulta");
             }
         } catch (error) {
+            posthog.captureException(error);
             console.error("Erro deletando:", error);
         }
     };
