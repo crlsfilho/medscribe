@@ -581,7 +581,7 @@ export function Calendar() {
       <div className="p-4 border-t border-border/50 bg-muted/20">
         <Button
           onClick={() => setActionModalOpen(true)}
-          className="w-full rounded-xl gap-2 bg-[#142d22] hover:bg-[#142d22]/90 text-white"
+          className="w-full rounded-xl gap-2"
         >
           <svg
             className="w-4 h-4"
@@ -596,7 +596,7 @@ export function Calendar() {
               d="M12 4.5v15m7.5-7.5h-15"
             />
           </svg>
-          Começar Consulta
+          Nova Consulta
         </Button>
       </div>
 
