@@ -66,7 +66,7 @@
 
 /* Snug Simple Design System - Calming & Empathetic */
 :root {
-  --radius: 1rem;
+  --radius: 0.125rem;
 
   /* Neutral base - Snug background and text */
   --background: #FAF8F5;
@@ -184,14 +184,11 @@
   }
 }
 
-/* Medical card style - soft shadows, rounded */
+/* Medical card style - solid borders, flat */
 .medical-card {
   background-color: var(--card);
-  border-radius: 1rem;
-  border: 1px solid oklch(0.92 0.005 260 / 0.5);
-  box-shadow:
-    0 1px 2px oklch(0.20 0.02 260 / 0.04),
-    0 4px 12px oklch(0.20 0.02 260 / 0.04);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
 }
 
 /* Recording indicator */
