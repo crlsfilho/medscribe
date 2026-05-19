@@ -76,7 +76,7 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-background overflow-x-hidden">
+    <div className="min-h-screen bg-clinical-grid clinical-noise overflow-x-hidden relative">
       {/* Impersonation Banner */}
       {session?.user?.impersonatedFromEmail && (
         <div className="bg-amber-500 text-white px-4 py-2 flex items-center justify-between text-sm font-medium z-[60] relative">
