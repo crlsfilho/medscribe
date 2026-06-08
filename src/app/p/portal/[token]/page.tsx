@@ -14,6 +14,8 @@ export default function PatientPortal({ params }: { params: Promise<{ token: str
     const [loading, setLoading] = useState(true);
     const [patient, setPatient] = useState<any>(null);
     const [uploading, setUploading] = useState(false);
+    const [digits, setDigits] = useState("");
+    const [verifying, setVerifying] = useState(false);
 
     useEffect(() => {
         fetchData();
@@ -29,6 +31,36 @@ export default function PatientPortal({ params }: { params: Promise<{ token: str
             // toast.error("Erro ao carregar portal");
         } finally {
             setLoading(false);
+        }
+    }
+
+    async function handleVerify(e: React.FormEvent) {
+        e.preventDefault();
+        if (digits.length !== 4) {
+            toast.error("Por favor, digite exatamente 4 números.");
+            return;
+        }
+
+        setVerifying(true);
+        try {
+            const res = await fetch("/api/public/portal/verify", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ token, phoneDigits: digits })
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || "Código incorreto");
+            }
+
+            toast.success("Acesso liberado com sucesso!");
+            setLoading(true);
+            fetchData();
+        } catch (error: any) {
+            toast.error(error.message || "Erro ao verificar telefone.");
+        } finally {
+            setVerifying(false);
         }
     }
 
@@ -55,8 +87,54 @@ export default function PatientPortal({ params }: { params: Promise<{ token: str
         }
     }
 
-    if (loading) return <div className="p-8 text-center">Carregando seus dados...</div>;
-    if (!patient) return <div className="p-8 text-center text-red-500">Link invalido ou expirado.</div>;
+    if (loading) return <div className="p-8 text-center text-slate-500 font-medium">Carregando seus dados...</div>;
+    if (!patient) return <div className="p-8 text-center text-red-500 font-medium">Link inválido ou expirado.</div>;
+
+    // Se exigir verificação de identidade LGPD
+    if (patient.requireVerification) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4 py-12">
+                <Card className="max-w-md w-full shadow-lg border border-slate-100 rounded-2xl overflow-hidden">
+                    <CardHeader className="text-center bg-white border-b border-slate-50 py-6">
+                        <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                            </svg>
+                        </div>
+                        <CardTitle className="text-xl font-bold text-slate-800">Verificação de Segurança</CardTitle>
+                        <CardDescription className="text-sm text-slate-500 mt-2 px-4">
+                            Olá, <span className="font-semibold text-slate-700">{patient.name}</span>. Para proteger seus dados de saúde conforme a LGPD, digite os <strong>4 últimos dígitos</strong> do seu telefone/WhatsApp cadastrado.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-6 bg-white">
+                        <form onSubmit={handleVerify} className="space-y-5">
+                            <div className="space-y-2">
+                                <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
+                                    maxLength={4}
+                                    placeholder="Ex: 8844"
+                                    value={digits}
+                                    onChange={(e) => setDigits(e.target.value.replace(/\D/g, ""))}
+                                    className="w-full text-center text-2xl tracking-widest font-mono border-2 border-slate-200 focus:border-blue-500 rounded-xl py-3 outline-none transition-colors"
+                                    required
+                                    autoFocus
+                                />
+                            </div>
+                            <Button
+                                type="submit"
+                                className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors"
+                                disabled={verifying || digits.length !== 4}
+                            >
+                                {verifying ? "Verificando..." : "Confirmar e Acessar"}
+                            </Button>
+                        </form>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
 
     const lastVisit = patient.visits[0];
 

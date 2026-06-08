@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { put } from "@vercel/blob";
+import { put, get } from "@vercel/blob";
 import OpenAI from "openai";
 import { diarizeHybrid } from "@/lib/speaker-diarization";
 
@@ -53,22 +53,22 @@ export async function POST(request: NextRequest) {
       if (process.env.BLOB_READ_WRITE_TOKEN) {
         const filename = `audio/${visitId}-${Date.now()}.webm`;
         const blob = await put(filename, audioBuffer, {
-          access: "public", // TODO: migrate to signed URLs when Vercel Blob supports private reads
+          access: "private", // Bloqueia o acesso público direto na CDN do Vercel Blob
           contentType: "audio/webm",
         });
         audioUrl = blob.url;
       } else {
-        // Fallback for local development
+        // Fallback local seguro (fora da pasta pública do Next.js)
         const fs = await import("fs");
         const path = await import("path");
-        const uploadDir = path.join(process.cwd(), "public", "uploads", "audio");
+        const uploadDir = path.join(process.cwd(), "uploads", "audio");
         if (!fs.existsSync(uploadDir)) {
           fs.mkdirSync(uploadDir, { recursive: true });
         }
         const filename = `${visitId}-${Date.now()}.webm`;
         const filepath = path.join(uploadDir, filename);
         fs.writeFileSync(filepath, audioBuffer);
-        audioUrl = `/uploads/audio/${filename}`;
+        audioUrl = `/api/uploads/audio/${filename}`;
       }
 
       // Update visit with audio URL
@@ -99,14 +99,19 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Fetch audio from Vercel Blob URL or local path
+      // Fetch private audio from Vercel Blob URL securely
       if (visit.audioUrl.startsWith("http")) {
-        const response = await fetch(visit.audioUrl);
-        if (!response.ok) {
-          return NextResponse.json({ error: "Erro ao buscar audio" }, { status: 500 });
+        try {
+          const blobResult = await get(visit.audioUrl, { access: "private" });
+          if (!blobResult || blobResult.statusCode !== 200 || !blobResult.stream) {
+            throw new Error("Não foi possível obter o stream do áudio ou arquivo não modificado");
+          }
+          const arrayBuffer = await new Response(blobResult.stream).arrayBuffer();
+          audioBuffer = Buffer.from(arrayBuffer);
+        } catch (err) {
+          console.error("Erro ao buscar áudio privado no Vercel Blob:", err);
+          return NextResponse.json({ error: "Erro ao buscar áudio privado no storage" }, { status: 500 });
         }
-        const arrayBuffer = await response.arrayBuffer();
-        audioBuffer = Buffer.from(arrayBuffer);
       } else {
         // Legacy: local file path (no longer supported on Vercel)
         console.error("Attempted to access local file in serverless environment:", visit.audioUrl);

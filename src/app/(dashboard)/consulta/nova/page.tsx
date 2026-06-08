@@ -135,8 +135,24 @@ function NovaConsultaContent() {
     }
   };
 
-  const handleConsentConfirm = () => {
+  const handleConsentConfirm = async () => {
     setShowConsentDialog(false);
+
+    if (visitId) {
+      try {
+        await fetch(`/api/visits/${visitId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            consentObtained: true,
+            consentObtainedAt: new Date().toISOString()
+          }),
+        });
+      } catch (err) {
+        console.error("Erro ao registrar consentimento do paciente no banco de dados:", err);
+      }
+    }
+
     setStep(2);
   };
 

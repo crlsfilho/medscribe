@@ -69,6 +69,10 @@ model Visit {
   returnChecklist String?   // JSON: ["Exame X", "Retorno em 7 dias"]
   shareToken      String?   @unique // Token seguro para acesso público (Portal)
 
+  // LGPD Consent Fields
+  consentObtained   Boolean   @default(false)
+  consentObtainedAt DateTime?
+
   @@index([userId])
   @@index([patientId])
 }

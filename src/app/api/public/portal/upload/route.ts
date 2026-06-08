@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
         const filename = `docs/${patient.id}-${Date.now()}.${safeExt}`;
 
         const blob = await put(filename, file, {
-            access: "public", // TODO: migrate to signed URLs when Vercel Blob supports private reads
+            access: "private", // Bloqueia o acesso público direto na CDN do Vercel Blob
             contentType: file.type || "application/pdf",
         });
 
